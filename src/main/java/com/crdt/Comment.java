@@ -14,6 +14,9 @@ public class Comment {
     private Timestamp created;
     private Timestamp edited;
 
+    public Comment(int id, Post postId, User authorId, String content, Media media, Comment parentId, int votes, Timestamp createTime, Timestamp editTime) {
+    }
+
     public int getID() {return id;}
     public Post getPost() {return post;}
     public User getAuthor() {return author;}
