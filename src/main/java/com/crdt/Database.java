@@ -50,6 +50,9 @@ public class Database {
         return str_salt + ":" + str_hash;
     }
 
+
+
+    // BOOKMARK: Posts
     public void InsertPost(Post p) throws SQLException {
         String sql = "INSERT INTO posts (author_id, subcreddit_id, title, content) VALUES (?, ?, ?, ?)";
         try (PreparedStatement stmt = conn.prepareStatement(sql)) {
@@ -61,19 +64,81 @@ public class Database {
         }
     }
 
-    public void InsertComment(Comment c) throws SQLException {
-        String sql = "INSERT INTO comments (post_id, author_id, parent_id, content, media_url, media_type) VALUES (?, ?, ?, ?, ?, ?)";
-        try (PreparedStatement stmt = conn.prepareStatement(sql)) {
-            stmt.setInt(1, c.getPost().getID());
-            stmt.setInt(2, c.getAuthor().getId());
-            stmt.setInt(3, c.getParent().getID());
-            stmt.setString(4,c.getContent());
-            stmt.setString(5,c.getMedia_url());
-            stmt.setString(6,c.getMedia_type());
-            stmt.executeUpdate();
+    public ArrayList<Post> GetAllPosts() throws SQLException {
+        ArrayList<Post> posts = new ArrayList<>();
+        String sql = "SELECT * FROM posts ORDER BY id DESC";
+        try (PreparedStatement stmt = conn.prepareStatement(sql);
+             ResultSet rs = stmt.executeQuery()) {
+            while (rs.next()) {
+
+                int postid = rs.getInt("id");
+                ArrayList<Media> media = new ArrayList<>();
+                String sql2 = "SELECT * FROM post_media ORDER BY id ASC WHERE (post_id = " + postid + ")";
+                try (PreparedStatement stmt2 = conn.prepareStatement(sql2);
+                     ResultSet rs2 = stmt2.executeQuery()) {
+                    while (rs.next()) {
+                        media.add(new Media(MediaType.toMediaType(rs.getString("media_type")), rs.getString("media_url")));
+                    }
+                }
+
+                int votes = 0;
+                String sql3 = "SELECT * FROM votes_posts WHERE (post_id = " + postid + ")";
+                try (PreparedStatement stmt3 = conn.prepareStatement(sql3);
+                     ResultSet rs3 = stmt3.executeQuery()) {
+                    while(rs3.next()) {
+                        votes += (rs3.getString("value").equalsIgnoreCase("Up")? 1 : -1);
+                    }
+                }
+
+                Post p = new Post(postid, rs.getInt("author_id"), GetSubcreddit(rs.getString("subcreddit_id")),
+                        rs.getString("title"), rs.getString("content"), media,
+                        rs.getTimestamp("create_time"), rs.getTimestamp("edit_time"), votes);
+                posts.add(p);
+            }
         }
+        return posts;
     }
 
+    public Post GetPost(int postid) throws SQLException {
+        if(postid <= 0)
+            return null;
+
+        String sql = "SELECT * FROM posts WHERE (id = " + postid + ")";
+        try (PreparedStatement stmt = conn.prepareStatement(sql);
+             ResultSet rs = stmt.executeQuery()) {
+            if (rs.next()) {
+
+                ArrayList<Media> media = new ArrayList<>();
+                String sql2 = "SELECT * FROM post_media ORDER BY id ASC WHERE (post_id = " + postid + ")";
+                try (PreparedStatement stmt2 = conn.prepareStatement(sql2);
+                     ResultSet rs2 = stmt2.executeQuery()) {
+                    while (rs.next()) {
+                        media.add(new Media(MediaType.toMediaType(rs.getString("media_type")), rs.getString("media_url")));
+                    }
+                }
+
+                int votes = 0;
+                String sql3 = "SELECT * FROM votes_posts WHERE (post_id = " + postid + ")";
+                try (PreparedStatement stmt3 = conn.prepareStatement(sql3);
+                     ResultSet rs3 = stmt3.executeQuery()) {
+                    while(rs3.next()) {
+                        votes += (rs3.getString("value").equalsIgnoreCase("Up")? 1 : -1);
+                    }
+                }
+
+                return new Post(postid, rs.getInt("author_id"), GetSubcreddit(rs.getString("subcreddit_id")),
+                        rs.getString("title"), rs.getString("content"), media,
+                        rs.getTimestamp("create_time"), rs.getTimestamp("edit_time"), votes);
+            }
+        }
+        return null;
+    }
+
+
+
+
+
+    // BOOKMARK: Users
     public void InsertUser(User user) throws SQLException {
         String password_hash = HashPassword(user.getPassword());
 
@@ -87,23 +152,6 @@ public class Database {
             stmt.setString(6, user.getPfp().GetURL());
             stmt.executeUpdate();
         }
-    }
-
-
-
-    public List<Post> GetAllPosts() throws SQLException {
-        List<Post> posts = new ArrayList<>();
-        String sql = "SELECT * FROM posts ORDER BY id DESC";
-        try (PreparedStatement stmt = conn.prepareStatement(sql);
-             ResultSet rs = stmt.executeQuery()) {
-            while (rs.next()) {
-                Post p = new Post(rs.getInt("id"), rs.getInt("userid"), rs.getString("title"),
-                        rs.getString("content"), rs.getString("media_url"), rs.getString("media_type"),
-                        rs.getTimestamp("create_time"), rs.getTimestamp("edit_time"));
-                posts.add(p);
-            }
-        }
-        return posts;
     }
 
     public ArrayList<User> GetAllUsers() throws SQLException {
@@ -134,6 +182,23 @@ public class Database {
         return null;
     }
 
+
+
+
+    // BOOKMARK: Comments
+    public void InsertComment(Comment c) throws SQLException {
+        String sql = "INSERT INTO comments (post_id, author_id, parent_id, content, media_url, media_type) VALUES (?, ?, ?, ?, ?, ?)";
+        try (PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setInt(1, c.getPost().getID());
+            stmt.setInt(2, c.getAuthor().getId());
+            stmt.setInt(3, c.getParent().getID());
+            stmt.setString(4,c.getContent());
+            stmt.setString(5,c.getMedia_url());
+            stmt.setString(6,c.getMedia_type());
+            stmt.executeUpdate();
+        }
+    }
+
     public ArrayList<Comment> GetAllComments(int postid) throws SQLException {
         ArrayList<Comment> comments = new ArrayList<>();
         String sql = "SELECT * FROM comments ORDER BY id DESC WHERE (post_id = " + postid + ")";
@@ -144,7 +209,7 @@ public class Database {
                 int votes = 0;
                 String sql2 = "SELECT * FROM votes_comments WHERE (comment_id = " + rs.getInt("id") + ")";
                 try (PreparedStatement stmt2 = conn.prepareStatement(sql2);
-                     ResultSet rs2 = stmt.executeQuery()) {
+                     ResultSet rs2 = stmt2.executeQuery()) {
                     while(rs2.next()) {
                         votes += (rs2.getString("value").equalsIgnoreCase("Up")? 1 : -1);
                     }
@@ -169,7 +234,7 @@ public class Database {
                 int votes = 0;
                 String sql2 = "SELECT * FROM votes_comments WHERE (comment_id = " + commentid + ")";
                 try (PreparedStatement stmt2 = conn.prepareStatement(sql2);
-                     ResultSet rs2 = stmt.executeQuery()) {
+                     ResultSet rs2 = stmt2.executeQuery()) {
                     while(rs2.next()) {
                         votes += (rs2.getString("value").equalsIgnoreCase("Up")? 1 : -1);
                     }
