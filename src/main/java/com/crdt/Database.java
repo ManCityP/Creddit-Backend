@@ -84,7 +84,7 @@ public class Database {
             stmt.setString(3, password_hash);
             stmt.setString(4, user.getGender().toString());
             stmt.setString(5, user.getBio());
-            stmt.setString(6, user.getPfp().getMediaURL());
+            stmt.setString(6, user.getPfp().GetURL());
             stmt.executeUpdate();
         }
     }
