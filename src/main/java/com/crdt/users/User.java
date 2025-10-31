@@ -3,7 +3,7 @@ package com.crdt.users;
 import com.crdt.*;
 import java.sql.Timestamp;
 
-public class User {
+public class User implements Repotable{
     protected int id;
     protected String username;
     protected String email;
