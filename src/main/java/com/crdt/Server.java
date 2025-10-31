@@ -2,6 +2,7 @@ package com.crdt;
 
 import static spark.Spark.*;
 
+import com.crdt.users.User;
 import com.google.gson.*;
 
 import javax.servlet.MultipartConfigElement;
@@ -82,11 +83,31 @@ public class Server {
             return "yes";
         });
 
+        // Route: Create new user
+        post("/user", (req, res) -> {
+            try {
+                User user = gson.fromJson(req.body(), User.class);
+                db.InsertUser(user);
+                res.type("application/json");
+                return gson.toJson(Map.of("status", "ok"));
+            } catch (Exception e) {
+                e.printStackTrace(); // server log
+                res.status(500);
+                return gson.toJson(Map.of("status", "error", "message", e.getMessage()));
+            }
+        });
+
+        // Route: Get all users
+        get("/user/all", (req, res) -> {
+            ArrayList<User> users = db.GetAllUsers();
+            res.type("application/json");
+            return gson.toJson(users);
+        });
+
         // Route: Create new post
         post("/post", (req, res) -> {
             try {
                 Post post = gson.fromJson(req.body(), Post.class);
-                post.mediaUrl = post.mediaUrl.substring(post.mediaUrl.lastIndexOf('/') + 1);
                 db.InsertPost(post);
                 res.type("application/json");
                 return gson.toJson(Map.of("status", "ok"));
@@ -99,9 +120,30 @@ public class Server {
 
         // Route: Get all posts
         get("/post/all", (req, res) -> {
-            List<Post> posts = db.GetAllPosts();
+            ArrayList<Post> posts = db.GetAllPosts();
             res.type("application/json");
             return gson.toJson(posts);
+        });
+
+        //Route: Create new comment
+        post("/comment", (req, res) -> {
+            try {
+                Comment comment = gson.fromJson(req.body(), Comment.class);
+                db.InsertComment(comment);
+                res.type("application/json");
+                return gson.toJson(Map.of("status", "ok"));
+            } catch (Exception e) {
+                e.printStackTrace(); // server log
+                res.status(500);
+                return gson.toJson(Map.of("status", "error", "message", e.getMessage()));
+            }
+        });
+
+        // Route: Get all comments
+        get("/comments/all", (req, res) -> {
+            ArrayList<Comment> comments = db.GetAllComments();
+            res.type("application/json");
+            return gson.toJson(comments);
         });
 
         // Route: File upload

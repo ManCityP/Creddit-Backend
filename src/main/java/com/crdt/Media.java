@@ -1,7 +1,5 @@
 package com.crdt;
 
-
-
 public class Media {
     private MediaType mediaType;
     private String mediaUrl;

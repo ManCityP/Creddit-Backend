@@ -1,5 +1,6 @@
 package com.crdt;
 
+import com.crdt.users.Gender;
 import com.crdt.users.User;
 import de.mkammerer.argon2.*;
 
@@ -89,6 +90,34 @@ public class Database {
     }
 
 
+
+    public List<Post> GetAllPosts() throws SQLException {
+        List<Post> posts = new ArrayList<>();
+        String sql = "SELECT * FROM posts ORDER BY id DESC";
+        try (PreparedStatement stmt = conn.prepareStatement(sql);
+             ResultSet rs = stmt.executeQuery()) {
+            while (rs.next()) {
+                Post p = new Post(rs.getInt("id"), rs.getInt("userid"), rs.getString("title"),
+                        rs.getString("content"), rs.getString("media_url"), rs.getString("media_type"),
+                        rs.getTimestamp("created"), rs.getTimestamp("edited"));
+                posts.add(p);
+            }
+        }
+        return posts;
+    }
+
+    public ArrayList<User> GetAllUsers() throws SQLException {
+        ArrayList<User> users = new ArrayList<>();
+        String sql = "SELECT * FROM users ORDER BY id DESC";
+        try (PreparedStatement stmt = conn.prepareStatement(sql);
+             ResultSet rs = stmt.executeQuery()) {
+            while (rs.next()) {
+                User u = new User(rs.getInt("id"), rs.getString("username"), rs.getString("email"), rs.getString("password_hash"), Gender.toGender(rs.getString("gender")), rs.getString("bio"), new Media() rs.getString("pfp"),);
+                users.add(u);
+            }
+        }
+        return posts;
+    }
 
     public List<Post> GetAllPosts() throws SQLException {
         List<Post> posts = new ArrayList<>();
