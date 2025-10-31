@@ -140,8 +140,9 @@ public class Server {
         });
 
         // Route: Get all comments
-        get("/comments/all", (req, res) -> {
-            ArrayList<Comment> comments = db.GetAllComments();
+        get("/comments", (req, res) -> {
+            int postid = Integer.parseInt(req.queryParams("postid"));
+            ArrayList<Comment> comments = db.GetAllComments(postid);
             res.type("application/json");
             return gson.toJson(comments);
         });
