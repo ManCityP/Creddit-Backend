@@ -84,7 +84,7 @@ public class Database {
             stmt.setString(3, password_hash);
             stmt.setString(4, user.getGender().toString());
             stmt.setString(5, user.getBio());
-            stmt.setString(6, user.getPfp().getMediaURL());
+            stmt.setString(6, user.getPfp().GetURL());
             stmt.executeUpdate();
         }
     }
@@ -99,7 +99,7 @@ public class Database {
             while (rs.next()) {
                 Post p = new Post(rs.getInt("id"), rs.getInt("userid"), rs.getString("title"),
                         rs.getString("content"), rs.getString("media_url"), rs.getString("media_type"),
-                        rs.getTimestamp("created"), rs.getTimestamp("edited"));
+                        rs.getTimestamp("create_time"), rs.getTimestamp("edit_time"));
                 posts.add(p);
             }
         }
@@ -112,11 +112,26 @@ public class Database {
         try (PreparedStatement stmt = conn.prepareStatement(sql);
              ResultSet rs = stmt.executeQuery()) {
             while (rs.next()) {
-                User u = new User(rs.getInt("id"), rs.getString("username"), rs.getString("email"), rs.getString("password_hash"), Gender.toGender(rs.getString("gender")), rs.getString("bio"), new Media() rs.getString("pfp"),);
+                User u = new User(rs.getInt("id"), rs.getString("username"), rs.getString("email"), rs.getString("password_hash"),
+                        Gender.toGender(rs.getString("gender")), rs.getString("bio"), new Media(MediaType.IMAGE, rs.getString("pfp")),
+                        rs.getTimestamp("create_time"));
                 users.add(u);
             }
         }
-        return posts;
+        return users;
+    }
+
+    public User GetUser(int id) throws SQLException {
+        String sql = "SELECT * FROM users WHERE (id = " + id + ")";
+        try (PreparedStatement stmt = conn.prepareStatement(sql)) {
+            ResultSet rs = stmt.executeQuery();
+            if (rs.next()) {
+                return new User(rs.getInt("id"), rs.getString("username"), rs.getString("email"), rs.getString("password_hash"),
+                        Gender.toGender(rs.getString("gender")), rs.getString("bio"), new Media(MediaType.IMAGE, rs.getString("pfp")),
+                        rs.getTimestamp("create_time"));
+            }
+        }
+        return null;
     }
 
     public ArrayList<Comment> GetAllComments(int postid) throws SQLException {
@@ -135,8 +150,8 @@ public class Database {
                     }
                 }
                 Comment p = new Comment(rs.getInt("id"), GetPost(rs.getInt("post_id")), GetUser(rs.getInt("author_id")), rs.getString("content"),
-                        new Media(MediaType.toMediaType(rs.getString("media_url")), rs.getString("media_type")), GetComment(rs.getInt("parent_id")), votes,
-                        rs.getTimestamp("created"), rs.getTimestamp("edited"));
+                        new Media(MediaType.toMediaType(rs.getString("media_type")), rs.getString("media_url")), GetComment(rs.getInt("parent_id")), votes,
+                        rs.getTimestamp("create_time"), rs.getTimestamp("edit_time"));
                 comments.add(p);
             }
         }
@@ -160,8 +175,8 @@ public class Database {
                     }
                 }
                 return new Comment(commentid, GetPost(rs.getInt("post_id")), GetUser(rs.getInt("author_id")), rs.getString("content"),
-                        new Media(MediaType.toMediaType(rs.getString("media_url")), rs.getString("media_type")), GetComment(rs.getInt("parent_id")), votes,
-                        rs.getTimestamp("created"), rs.getTimestamp("edited"));
+                        new Media(MediaType.toMediaType(rs.getString("media_type")), rs.getString("media_url")), GetComment(rs.getInt("parent_id")), votes,
+                        rs.getTimestamp("create_time"), rs.getTimestamp("edit_time"));
             }
         }
         return null;
