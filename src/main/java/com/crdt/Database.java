@@ -3,7 +3,6 @@ package com.crdt;
 import com.crdt.users.Gender;
 import com.crdt.users.User;
 import de.mkammerer.argon2.*;
-
 import java.sql.*;
 import java.util.*;
 
@@ -91,8 +90,8 @@ public class Database {
 
 
 
-    public List<Post> GetAllPosts() throws SQLException {
-        List<Post> posts = new ArrayList<>();
+    public ArrayList<Post> GetAllPosts() throws SQLException {
+        ArrayList<Post> posts = new ArrayList<>();
         String sql = "SELECT * FROM posts ORDER BY id DESC";
         try (PreparedStatement stmt = conn.prepareStatement(sql);
              ResultSet rs = stmt.executeQuery()) {
