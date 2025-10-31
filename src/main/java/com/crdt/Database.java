@@ -55,14 +55,39 @@ public class Database {
 
     // BOOKMARK: Posts
     public void InsertPost(Post p) throws SQLException {
+        for(String category : p.getCategories()) {
+            int categoryID = CategoryExists(category);
+            if(categoryID == 0)
+                categoryID = InsertCategory(category.toLowerCase());
+            String sql = "INSERT INTO post_categories (post_id, category_id) VALUES (?, ?)";
+            try(PreparedStatement stmt = conn.prepareStatement(sql)) {
+                stmt.setInt(1, p.GetID());
+                stmt.setInt(2, categoryID);
+                stmt.executeUpdate();
+            }
+        }
+
         String sql = "INSERT INTO posts (author_id, subcreddit_id, title, content) VALUES (?, ?, ?, ?)";
         try (PreparedStatement stmt = conn.prepareStatement(sql)) {
-            stmt.setInt(1, p.userID);
-            stmt.setInt(2, p.getSubcreddit().getId());
-            stmt.setString(3, p.title);
-            stmt.setString(4, p.content);
+            stmt.setInt(1, p.GetAuthor().GetID());
+            stmt.setInt(2, p.GetSubcreddit().GetID());
+            stmt.setString(3, p.GetTitle());
+            stmt.setString(4, p.GetContent());
             stmt.executeUpdate();
         }
+    }
+
+    public int InsertCategory(String category) throws SQLException {
+        String sql = "INSERT INTO categories (name) VALUES (?)";
+        try (PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setString(1, category);
+            stmt.executeUpdate();
+            try (ResultSet rs = stmt.getGeneratedKeys()) {
+                if (rs.next())
+                    return rs.getInt("id");
+            }
+        }
+        return 0;
     }
 
     public ArrayList<Post> GetAllPosts() throws SQLException {
@@ -171,6 +196,17 @@ public class Database {
             }
         }
         return null;
+    }
+
+    public int CategoryExists(String categoryName) throws SQLException {
+        String sql = "SELECT * FROM categories WHERE (name = " + categoryName.toLowerCase() + ")";
+        try (PreparedStatement stmt = conn.prepareStatement(sql);
+             ResultSet rs = stmt.executeQuery()) {
+            if (rs.next()) {
+                return rs.getInt("id");
+            }
+        }
+        return 0;
     }
 
 

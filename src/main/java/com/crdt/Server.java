@@ -84,27 +84,10 @@ public class Server {
             return "yes";
         });
 
-        // Route: Create new user
-        post("/user", (req, res) -> {
-            try {
-                User user = gson.fromJson(req.body(), User.class);
-                db.InsertUser(user);
-                res.type("application/json");
-                return gson.toJson(Map.of("status", "ok"));
-            } catch (Exception e) {
-                e.printStackTrace(); // server log
-                res.status(500);
-                return gson.toJson(Map.of("status", "error", "message", e.getMessage()));
-            }
-        });
 
-        // Route: Get all users
-        get("/user/all", (req, res) -> {
-            ArrayList<User> users = db.GetAllUsers();
-            res.type("application/json");
-            return gson.toJson(users);
-        });
 
+
+        // BOOKMARK: POST
         // Route: Create new post
         post("/post", (req, res) -> {
             try {
@@ -119,6 +102,14 @@ public class Server {
             }
         });
 
+        // Route: Get a specific post
+        get("/post", (req, res) -> {
+            int id = Integer.parseInt(req.queryParams("id"));
+            Post post = db.GetPost(id);
+            res.type("application/json");
+            return gson.toJson(post);
+        });
+
         // Route: Get all posts
         get("/post/all", (req, res) -> {
             ArrayList<Post> posts = db.GetAllPosts();
@@ -126,6 +117,47 @@ public class Server {
             return gson.toJson(posts);
         });
 
+        // Route: Get all categories
+        get("/category/all", (req, res) -> {
+            ArrayList<String> categories = db.GetAllCategories();
+            res.type("application/json");
+            return gson.toJson(categories);
+        });
+
+
+        // BOOKMARK: USER
+        // Route: Create new user
+        post("/user", (req, res) -> {
+            try {
+                User user = gson.fromJson(req.body(), User.class);
+                db.InsertUser(user);
+                res.type("application/json");
+                return gson.toJson(Map.of("status", "ok"));
+            } catch (Exception e) {
+                e.printStackTrace(); // server log
+                res.status(500);
+                return gson.toJson(Map.of("status", "error", "message", e.getMessage()));
+            }
+        });
+
+        // Route: Get a specific user
+        get("/user", (req, res) -> {
+            int id = Integer.parseInt(req.queryParams("id"));
+            User user = db.GetUser(id);
+            res.type("application/json");
+            return gson.toJson(user);
+        });
+
+        // Route: Get all users
+        get("/user/all", (req, res) -> {
+            ArrayList<User> users = db.GetAllUsers();
+            res.type("application/json");
+            return gson.toJson(users);
+        });
+
+
+
+        // BOOKMARK: COMMENT
         //Route: Create new comment
         post("/comment", (req, res) -> {
             try {
@@ -140,6 +172,14 @@ public class Server {
             }
         });
 
+        // Route: Get a specific comment
+        get("/comment", (req, res) -> {
+            int id = Integer.parseInt(req.queryParams("id"));
+            Comment comment = db.GetComment(id);
+            res.type("application/json");
+            return gson.toJson(comment);
+        });
+
         // Route: Get all comments
         get("/comments", (req, res) -> {
             int postid = Integer.parseInt(req.queryParams("postid"));
@@ -147,6 +187,48 @@ public class Server {
             res.type("application/json");
             return gson.toJson(comments);
         });
+
+
+
+        // BOOKMARK: Subcreddit
+        //Route: Create new subcreddit
+        post("/subcreddit", (req, res) -> {
+            try {
+                Subcreddit subcreddit = gson.fromJson(req.body(), Subcreddit.class);
+                db.InsertSubcreddit(subcreddit);
+                res.type("application/json");
+                return gson.toJson(Map.of("status", "ok"));
+            } catch (Exception e) {
+                e.printStackTrace(); // server log
+                res.status(500);
+                return gson.toJson(Map.of("status", "error", "message", e.getMessage()));
+            }
+        });
+
+        // Route: Get a specific subcreddit
+        get("/subcreddit", (req, res) -> {
+            int id = Integer.parseInt(req.queryParams("id"));
+            Subcreddit subcreddit = db.GetSubcreddit(id);
+            res.type("application/json");
+            return gson.toJson(subcreddit);
+        });
+
+        // Route: Get all subcreddits
+        get("/subcreddit/all", (req, res) -> {
+            ArrayList<Subcreddit> subcreddits = db.GetAllSubcreddits();
+            res.type("application/json");
+            return gson.toJson(subcreddits);
+        });
+
+        // Route: Get subcreddit bans
+        get("/subcreddit/bans", (req, res) -> {
+            int id = Integer.parseInt(req.queryParams("id"));
+            ArrayList<User> bannedMembers = db.GetSubcredditBannedMembers(id);
+            res.type("application/json");
+            return gson.toJson(bannedMembers);
+        });
+
+
 
         // Route: File upload
         final String finalTunnelURL = tunnelURL;
