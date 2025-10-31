@@ -30,6 +30,7 @@ public class Server {
             builder.redirectErrorStream(true);
             ngrokProcess = builder.start();
             Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+                db.CloseConnection();
                 if(ngrokProcess.isAlive()) {
                     try {
                         Runtime.getRuntime().exec("taskkill /F /IM ngrok.exe /T");

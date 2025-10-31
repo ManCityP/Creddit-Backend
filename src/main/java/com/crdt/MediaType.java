@@ -26,7 +26,7 @@ public enum MediaType {
         else
             return null;
     }
-    public String getMediaType() {
+    public String toString() {
         return this.mediaType;
     }
 }

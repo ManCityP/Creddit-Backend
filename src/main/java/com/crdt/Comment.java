@@ -9,12 +9,12 @@ public class Comment {
     private User author;
     private Comment parent;
     private String content;
-    private String media_url;
-    private String media_type;
-    private Timestamp created;
-    private Timestamp edited;
+    private Media media;
+    private int votes;
+    private Timestamp timeCreated;
+    private Timestamp timeEdited;
 
-    public Comment(int id, Post postId, User authorId, String content, Media media, Comment parentId, int votes, Timestamp createTime, Timestamp editTime) {
+    public Comment(int id, Post post, User author, String content, Media media, Comment parent, int votes, Timestamp createTime, Timestamp editTime) {
     }
 
     public int getID() {return id;}
@@ -22,6 +22,5 @@ public class Comment {
     public User getAuthor() {return author;}
     public Comment getParent() {return parent;}
     public String getContent() {return content;}
-    public String getMedia_url() {return media_url;}
-    public String getMedia_type() {return media_type;}
+    public Media getMedia() {return media;}
 }
