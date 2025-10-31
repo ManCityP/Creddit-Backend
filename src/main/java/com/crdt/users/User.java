@@ -1,10 +1,9 @@
 package com.crdt.users;
 
 import com.crdt.*;
-
 import java.sql.Timestamp;
 
-public class User {
+public class User implements Repotable{
     protected int id;
     protected String username;
     protected String email;
@@ -37,63 +36,63 @@ public class User {
     }
 
     public void deleteUser(User user) {
-        //TODO learn SQL
+        //TODO wainting for Meho
     }
 
     public void createPost(Post post) {
-        //TODO
+        //TODO wainting for Meho
     }
 
     public void deletePost(Post post) {
-        //TODO
+        //TODO wainting for Meho
     }
 
     public void sharePost(Post post) {
-        //TODO
+        //TODO wainting for Meho
     }
 
     public void savePost(Post post) {
-        //TODO
+        //TODO wainting for Meho
     }
 
     public void joinSubcreddit(Subcreddit subcreddit) {
-        //TODO
+        //TODO wainting for Meho
     }
 
     public void leaveSubcreddit(Subcreddit subcreddit) {
-        //TODO
+        //TODO wainting for Meho
     }
 
     public void CreateSubcreddit(Subcreddit subcreddit) {
-        //TODO
+        //TODO wainting for Meho
     }
 
     public void deleteSubcreddit(Subcreddit subcreddit) {
-        //TODO
+        //TODO wainting for Meho
     }
 
     public void privateMessage(Message message) {
-        //TODO
+        //TODO wainting for Meho
     }
 
     public void followUser(User user) {
-        //TODO
+        //TODO wainting for Meho
     }
 
     public void unFollowUser(User user) {
-        //TODO
+        //TODO wainting for Meho
     }
 
     public void addReport(Report report) {
-        //TODO
+        //TODO wainting for Meho
     }
 
     public void Upvote(Voteable voteable){
-        //TODO
+        //TODO wainting for Meho
     }
 
     public void Downvote(Voteable voteable){
-        //TODO
+        //TODO wainting for Meho
     }
 
 

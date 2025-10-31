@@ -4,6 +4,7 @@ import java.sql.Timestamp;
 
 public class Post {
     public int id;
+    private Subcreddit subcreddit;
     public int userID;
     public String title;
     public String content;
@@ -21,5 +22,9 @@ public class Post {
         this.mediaType = mediaType;
         this.created = created;
         this.edited = edited;
+    }
+
+    public Subcreddit getSubcreddit() {
+        return subcreddit;
     }
 }
