@@ -3,7 +3,7 @@ package com.crdt;
 import java.sql.Timestamp;
 
 public class Post {
-    public int id;
+    private int id;
     private Subcreddit subcreddit;
     public int userID;
     public String title;
@@ -27,4 +27,5 @@ public class Post {
     public Subcreddit getSubcreddit() {
         return subcreddit;
     }
+    public int getID() {return id;}
 }
