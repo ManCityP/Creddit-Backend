@@ -50,13 +50,15 @@ public class Database {
     }
 
     public void InsertPost(Post p) throws SQLException {
-        String sql = "INSERT INTO posts (userid, title, content, media_url, media_type) VALUES (?, ?, ?, ?, ?)";
+        String sql = "INSERT INTO posts (id, author_id, subcreddit_id, title, content, create_time, edit_time) VALUES (?, ?, ?, ?, ?, ?, ?)";
         try (PreparedStatement stmt = conn.prepareStatement(sql)) {
-            stmt.setInt(1, p.userID);
-            stmt.setString(2, p.title);
-            stmt.setString(3, p.content);
-            stmt.setString(4, p.mediaUrl);
-            stmt.setString(5, p.mediaType);
+            stmt.setInt(1, p.id);
+            stmt.setInt(2, p.userID);
+            stmt.setInt(3, p.getSubcreddit().getId());
+            stmt.setString(4, p.title);
+            stmt.setString(5, p.content);
+            stmt.setTimestamp(6, p.created);
+            stmt.setTimestamp(7, p.edited);
             stmt.executeUpdate();
         }
     }
