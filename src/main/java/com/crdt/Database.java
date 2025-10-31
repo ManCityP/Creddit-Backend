@@ -3,6 +3,7 @@ package com.crdt;
 import com.crdt.users.Gender;
 import com.crdt.users.User;
 import de.mkammerer.argon2.*;
+
 import java.sql.*;
 import java.util.*;
 
@@ -83,13 +84,15 @@ public class Database {
             stmt.setString(3, password_hash);
             stmt.setString(4, user.getGender().toString());
             stmt.setString(5, user.getBio());
-            stmt.setString(6, user.getPfp().GetURL());
+            stmt.setString(6, user.getPfp().getMediaURL());
             stmt.executeUpdate();
         }
     }
 
-    public ArrayList<Post> GetAllPosts() throws SQLException {
-        ArrayList<Post> posts = new ArrayList<>();
+
+
+    public List<Post> GetAllPosts() throws SQLException {
+        List<Post> posts = new ArrayList<>();
         String sql = "SELECT * FROM posts ORDER BY id DESC";
         try (PreparedStatement stmt = conn.prepareStatement(sql);
              ResultSet rs = stmt.executeQuery()) {
@@ -109,19 +112,56 @@ public class Database {
         try (PreparedStatement stmt = conn.prepareStatement(sql);
              ResultSet rs = stmt.executeQuery()) {
             while (rs.next()) {
-                User u = new User(rs.getInt("id"), rs.getString("username"), rs.getString("email"), rs.getString("password_hash"), Gender.toGender(rs.getString("gender")), rs.getString("bio"), new Media(MediaType.IMAGE, rs.getString("pfp")), new Timestamp(rs.getTimestamp("created").getTime()));
+                User u = new User(rs.getInt("id"), rs.getString("username"), rs.getString("email"), rs.getString("password_hash"), Gender.toGender(rs.getString("gender")), rs.getString("bio"), new Media() rs.getString("pfp"),);
                 users.add(u);
             }
         }
-        return users;
+        return posts;
     }
 
-    public User GetUser(int id) throws SQLException {
-        String sql = "SELECT * FROM users WHERE (id = "+id+")";
-        try (PreparedStatement stmt = conn.prepareStatement(sql)) {
-            ResultSet rs = stmt.executeQuery();
+    public ArrayList<Comment> GetAllComments(int postid) throws SQLException {
+        ArrayList<Comment> comments = new ArrayList<>();
+        String sql = "SELECT * FROM comments ORDER BY id DESC WHERE (post_id = " + postid + ")";
+
+        try (PreparedStatement stmt = conn.prepareStatement(sql);
+             ResultSet rs = stmt.executeQuery()) {
             while (rs.next()) {
-                return new User(rs.getInt("id"), rs.getString("username"), rs.getString("email"), rs.getString("password_hash"), Gender.toGender(rs.getString("gender")), rs.getString("bio"), new Media(MediaType.IMAGE, rs.getString("pfp")), new Timestamp(rs.getTimestamp("created").getTime()));
+                int votes = 0;
+                String sql2 = "SELECT * FROM votes_comments WHERE (comment_id = " + rs.getInt("id") + ")";
+                try (PreparedStatement stmt2 = conn.prepareStatement(sql2);
+                     ResultSet rs2 = stmt.executeQuery()) {
+                    while(rs2.next()) {
+                        votes += (rs2.getString("value").equalsIgnoreCase("Up")? 1 : -1);
+                    }
+                }
+                Comment p = new Comment(rs.getInt("id"), GetPost(rs.getInt("post_id")), GetUser(rs.getInt("author_id")), rs.getString("content"),
+                        new Media(MediaType.toMediaType(rs.getString("media_url")), rs.getString("media_type")), GetComment(rs.getInt("parent_id")), votes,
+                        rs.getTimestamp("created"), rs.getTimestamp("edited"));
+                comments.add(p);
+            }
+        }
+        return comments;
+    }
+    public Comment GetComment(int commentid) throws SQLException {
+        if(commentid <= 0)
+            return null;
+
+        String sql = "SELECT * FROM comments WHERE (id = " + commentid + ")";
+
+        try (PreparedStatement stmt = conn.prepareStatement(sql);
+             ResultSet rs = stmt.executeQuery()) {
+            if (rs.next()) {
+                int votes = 0;
+                String sql2 = "SELECT * FROM votes_comments WHERE (comment_id = " + commentid + ")";
+                try (PreparedStatement stmt2 = conn.prepareStatement(sql2);
+                     ResultSet rs2 = stmt.executeQuery()) {
+                    while(rs2.next()) {
+                        votes += (rs2.getString("value").equalsIgnoreCase("Up")? 1 : -1);
+                    }
+                }
+                return new Comment(commentid, GetPost(rs.getInt("post_id")), GetUser(rs.getInt("author_id")), rs.getString("content"),
+                        new Media(MediaType.toMediaType(rs.getString("media_url")), rs.getString("media_type")), GetComment(rs.getInt("parent_id")), votes,
+                        rs.getTimestamp("created"), rs.getTimestamp("edited"));
             }
         }
         return null;
