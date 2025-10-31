@@ -1,19 +1,10 @@
 package com.crdt.users;
 
-public class Moderator {
+public class Moderator extends User {
     private ArrayList<Subcreddit> subcreddits;
 
-    public Moderator(int id, String firstName, String lastName, String email,
-                     Gender gender, String bio, Media profileMedia,
-                     Timestamp joinDate, ArrayList<Subcreddit> subcreddits) {
-        this.id = id;
-        this.firstName = firstName;
-        this.lastName = lastName;
-        this.email = email;
-        this.gender = gender;
-        this.bio = bio;
-        this.profileMedia = profileMedia;
-        this.joinDate = joinDate;
+    public Moderator(int id, String userName, String email, String password,Gender gender, String bio, Media profileMedia,Timestamp joinDate, ArrayList<Subcreddit> subcreddits) {
+        super(id,userName,email,password,gender,bio,profileMedia,joinDate);                
         this.subcreddits = subcreddits != null ? subcreddits : new ArrayList<>();
     }
     public ArrayList<Subcreddit> GetSubcreddits() {
@@ -25,7 +16,4 @@ public class Moderator {
     }
     public void addSubcreddit(Subcreddit subcreddit) {
     }
-
-
-
 }
