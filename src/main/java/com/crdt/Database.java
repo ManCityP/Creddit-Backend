@@ -88,8 +88,6 @@ public class Database {
         }
     }
 
-
-
     public ArrayList<Post> GetAllPosts() throws SQLException {
         ArrayList<Post> posts = new ArrayList<>();
         String sql = "SELECT * FROM posts ORDER BY id DESC";
@@ -116,5 +114,16 @@ public class Database {
             }
         }
         return users;
+    }
+
+    public User GetUser(int id) throws SQLException {
+        String sql = "SELECT * FROM users WHERE (id = "+id+")";
+        try (PreparedStatement stmt = conn.prepareStatement(sql)) {
+            ResultSet rs = stmt.executeQuery();
+            while (rs.next()) {
+                return new User(rs.getInt("id"), rs.getString("username"), rs.getString("email"), rs.getString("password_hash"), Gender.toGender(rs.getString("gender")), rs.getString("bio"), new Media(MediaType.IMAGE, rs.getString("pfp")), new Timestamp(rs.getTimestamp("created").getTime()));
+            }
+        }
+        return null;
     }
 }
