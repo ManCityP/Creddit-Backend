@@ -83,7 +83,7 @@ public class Server {
         });
 
         // Route: Create new post
-        post("/posts", (req, res) -> {
+        post("/post", (req, res) -> {
             try {
                 Post post = gson.fromJson(req.body(), Post.class);
                 post.mediaUrl = post.mediaUrl.substring(post.mediaUrl.lastIndexOf('/') + 1);
@@ -98,7 +98,7 @@ public class Server {
         });
 
         // Route: Get all posts
-        get("/posts", (req, res) -> {
+        get("/post/all", (req, res) -> {
             List<Post> posts = db.GetAllPosts();
             res.type("application/json");
             return gson.toJson(posts);
