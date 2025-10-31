@@ -1,14 +1,12 @@
 package com.crdt;
 
 import static spark.Spark.*;
+
 import com.google.gson.*;
 
 import javax.servlet.MultipartConfigElement;
 import java.io.*;
-import java.net.HttpURLConnection;
-import java.net.URL;
 import java.nio.file.*;
-import java.sql.*;
 import java.util.*;
 
 public class Server {
