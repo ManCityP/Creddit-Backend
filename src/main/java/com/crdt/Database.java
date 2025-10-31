@@ -60,6 +60,19 @@ public class Database {
         }
     }
 
+    public void InsertComment(Comment c) throws SQLException {
+        String sql = "INSERT INTO comments (post_id, author_id, parent_id, content, media_url, media_type) VALUES (?, ?, ?, ?, ?, ?)";
+        try (PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setInt(1, c.getPost().getID());
+            stmt.setInt(2, c.getAuthor().getId());
+            stmt.setInt(3, c.getParent().getID());
+            stmt.setString(4,c.getContent());
+            stmt.setString(5,c.getMedia_url());
+            stmt.setString(6,c.getMedia_type());
+            stmt.executeUpdate();
+        }
+    }
+
     public void InsertUser(User user) throws SQLException {
         String password_hash = HashPassword(user.getPassword());
 
