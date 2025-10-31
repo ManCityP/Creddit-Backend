@@ -18,12 +18,12 @@ public class Server {
     private static Process ngrokProcess;
 
     public static void main(String[] args) throws Exception {
-        String tunnelURL = "https://semineutral-antony-unwronged.ngrok-free.dev";
+        String tunnelURL = System.getenv("server_url");
 
         Database db = new Database(
-                "jdbc:mysql://localhost:3306/creddit_db",
-                "root",
-                "Yu-Gi-Oh!"
+                System.getenv("db_url"),
+                System.getenv("db_user"),
+                System.getenv("pass")
         );
 
         try {
@@ -89,7 +89,7 @@ public class Server {
             try {
                 Post post = gson.fromJson(req.body(), Post.class);
                 post.mediaUrl = post.mediaUrl.substring(post.mediaUrl.lastIndexOf('/') + 1);
-                db.insertPost(post);
+                db.InsertPost(post);
                 res.type("application/json");
                 return gson.toJson(Map.of("status", "ok"));
             } catch (Exception e) {
@@ -101,7 +101,7 @@ public class Server {
 
         // Route: Get all posts
         get("/posts", (req, res) -> {
-            List<Post> posts = db.getAllPosts();
+            List<Post> posts = db.GetAllPosts();
             res.type("application/json");
             return gson.toJson(posts);
         });

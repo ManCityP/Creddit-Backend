@@ -21,7 +21,7 @@ public class Database {
         }
     }
 
-    public void insertPost(Post p) throws SQLException {
+    public void InsertPost(Post p) throws SQLException {
         String sql = "INSERT INTO posts (userid, title, content, media_url, media_type) VALUES (?, ?, ?, ?, ?)";
         try (PreparedStatement stmt = conn.prepareStatement(sql)) {
             stmt.setInt(1, p.userID);
@@ -33,7 +33,7 @@ public class Database {
         }
     }
 
-    public List<Post> getAllPosts() throws SQLException {
+    public List<Post> GetAllPosts() throws SQLException {
         List<Post> posts = new ArrayList<>();
         String sql = "SELECT * FROM posts ORDER BY id DESC";
         try (PreparedStatement stmt = conn.prepareStatement(sql);
