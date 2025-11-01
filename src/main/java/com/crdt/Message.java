@@ -13,6 +13,7 @@ public class Message {
     private Timestamp edit_time;
     private boolean read;
 
+    //Constructor
     public Message(int id, User sender, User receiver, String text, Media media, Timestamp create_time, Timestamp edit_time, boolean read){
 
         this.id=id;
@@ -26,6 +27,7 @@ public class Message {
 
     }
 
+    //getters
     public int GetID(){return id;}
     public User GetSender(){return sender;}
     public User GetReceiver() {return receiver;}
