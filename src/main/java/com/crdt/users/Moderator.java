@@ -3,22 +3,20 @@ package com.crdt.users;
 import com.crdt.Media;
 import com.crdt.Subcreddit;
 
+import java.sql.Timestamp;
 import java.util.ArrayList;
 
 public class Moderator extends User {
-    private ArrayList<Subcreddit> subcreddits;
 
-    public Moderator(int id, String userName, String email, String password, Gender gender, String bio, Media profileMedia, Timestamp joinDate, ArrayList<Subcreddit> subcreddits) {
+    public Moderator(int id, String userName, String email, String password, Gender gender, String bio, Media profileMedia, Timestamp joinDate) {
         super(id,userName,email,password,gender,bio,profileMedia,joinDate);                
-        this.subcreddits = subcreddits != null ? subcreddits : new ArrayList<>();
     }
-    public ArrayList<Subcreddit> GetSubcreddits() {
-        return subcreddits;
+
+    public void BanMember(User user, Subcreddit subcreddit) {
+
     }
-    public void KickMember(User user) {
-    }
+
     public boolean VerifyModeration(Subcreddit subcreddit) {
-    }
-    public void addSubcreddit(Subcreddit subcreddit) {
+
     }
 }

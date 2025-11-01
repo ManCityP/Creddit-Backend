@@ -54,7 +54,7 @@ public abstract class Database {
             if(categoryID == 0)
                 categoryID = InsertCategory(category.toLowerCase());
             String sql = "INSERT INTO post_categories (post_id, category_id) VALUES (?, ?)";
-            try(PreparedStatement stmt = conn.prepareStatement(sql)) {
+            try(PreparedStatement stmt = PrepareStatement(sql)) {
                 stmt.setInt(1, p.GetID());
                 stmt.setInt(2, categoryID);
                 stmt.executeUpdate();
@@ -62,7 +62,7 @@ public abstract class Database {
         }
 
         String sql = "INSERT INTO posts (author_id, subcreddit_id, title, content) VALUES (?, ?, ?, ?)";
-        try (PreparedStatement stmt = conn.prepareStatement(sql)) {
+        try (PreparedStatement stmt = PrepareStatement(sql)) {
             stmt.setInt(1, p.GetAuthor().GetID());
             stmt.setInt(2, p.GetSubcreddit().GetID());
             stmt.setString(3, p.GetTitle());
@@ -73,7 +73,7 @@ public abstract class Database {
 
     public static int InsertCategory(String category) throws SQLException {
         String sql = "INSERT INTO categories (name) VALUES (?)";
-        try (PreparedStatement stmt = conn.prepareStatement(sql)) {
+        try (PreparedStatement stmt = PrepareStatement(sql)) {
             stmt.setString(1, category);
             stmt.executeUpdate();
             try (ResultSet rs = stmt.getGeneratedKeys()) {
@@ -87,14 +87,14 @@ public abstract class Database {
     public static ArrayList<Post> GetAllPosts() throws SQLException {
         ArrayList<Post> posts = new ArrayList<>();
         String sql = "SELECT * FROM posts ORDER BY id DESC";
-        try (PreparedStatement stmt = conn.prepareStatement(sql);
+        try (PreparedStatement stmt = PrepareStatement(sql);
              ResultSet rs = stmt.executeQuery()) {
             while (rs.next()) {
 
                 int postid = rs.getInt("id");
                 ArrayList<Media> media = new ArrayList<>();
                 String sql2 = "SELECT * FROM post_media ORDER BY id ASC WHERE (post_id = " + postid + ")";
-                try (PreparedStatement stmt2 = conn.prepareStatement(sql2);
+                try (PreparedStatement stmt2 = PrepareStatement(sql2);
                      ResultSet rs2 = stmt2.executeQuery()) {
                     while (rs.next()) {
                         media.add(new Media(MediaType.toMediaType(rs.getString("media_type")), rs.getString("media_url")));
@@ -103,7 +103,7 @@ public abstract class Database {
 
                 int votes = 0;
                 String sql3 = "SELECT * FROM votes_posts WHERE (post_id = " + postid + ")";
-                try (PreparedStatement stmt3 = conn.prepareStatement(sql3);
+                try (PreparedStatement stmt3 = PrepareStatement(sql3);
                      ResultSet rs3 = stmt3.executeQuery()) {
                     while(rs3.next()) {
                         votes += (rs3.getString("value").equalsIgnoreCase("Up")? 1 : -1);
@@ -124,13 +124,13 @@ public abstract class Database {
             return null;
 
         String sql = "SELECT * FROM posts WHERE (id = " + postid + ")";
-        try (PreparedStatement stmt = conn.prepareStatement(sql);
+        try (PreparedStatement stmt = PrepareStatement(sql);
              ResultSet rs = stmt.executeQuery()) {
             if (rs.next()) {
 
                 ArrayList<Media> media = new ArrayList<>();
                 String sql2 = "SELECT * FROM post_media ORDER BY id ASC WHERE (post_id = " + postid + ")";
-                try (PreparedStatement stmt2 = conn.prepareStatement(sql2);
+                try (PreparedStatement stmt2 = PrepareStatement(sql2);
                      ResultSet rs2 = stmt2.executeQuery()) {
                     while (rs.next()) {
                         media.add(new Media(MediaType.toMediaType(rs.getString("media_type")), rs.getString("media_url")));
@@ -139,7 +139,7 @@ public abstract class Database {
 
                 int votes = 0;
                 String sql3 = "SELECT * FROM votes_posts WHERE (post_id = " + postid + ")";
-                try (PreparedStatement stmt3 = conn.prepareStatement(sql3);
+                try (PreparedStatement stmt3 = PrepareStatement(sql3);
                      ResultSet rs3 = stmt3.executeQuery()) {
                     while(rs3.next()) {
                         votes += (rs3.getString("value").equalsIgnoreCase("Up")? 1 : -1);
@@ -157,7 +157,7 @@ public abstract class Database {
     public static ArrayList<String> GetPostCategories(int postID) throws SQLException {
         ArrayList<String> categories = new ArrayList<>();
         String sql = "SELECT * FROM post_categories WHERE (post_id = " + postID + ")";
-        try (PreparedStatement stmt = conn.prepareStatement(sql);
+        try (PreparedStatement stmt = PrepareStatement(sql);
              ResultSet rs = stmt.executeQuery()) {
             while (rs.next()) {
                 categories.add(GetCategory(rs.getInt("category_id")));
@@ -169,7 +169,7 @@ public abstract class Database {
     public static ArrayList<String> GetAllCategories() throws SQLException {
         ArrayList<String> categories = new ArrayList<>();
         String sql = "SELECT * FROM categories ORDER BY name ASC";
-        try (PreparedStatement stmt = conn.prepareStatement(sql);
+        try (PreparedStatement stmt = PrepareStatement(sql);
              ResultSet rs = stmt.executeQuery()) {
             while (rs.next()) {
                 categories.add(rs.getString("name"));
@@ -183,7 +183,7 @@ public abstract class Database {
             return null;
 
         String sql = "SELECT * FROM categories WHERE (id = " + categoryID + ")";
-        try (PreparedStatement stmt = conn.prepareStatement(sql);
+        try (PreparedStatement stmt = PrepareStatement(sql);
              ResultSet rs = stmt.executeQuery()) {
             if (rs.next()) {
                 return rs.getString("name");
@@ -194,7 +194,7 @@ public abstract class Database {
 
     public static int CategoryExists(String categoryName) throws SQLException {
         String sql = "SELECT * FROM categories WHERE (name = " + categoryName.toLowerCase() + ")";
-        try (PreparedStatement stmt = conn.prepareStatement(sql);
+        try (PreparedStatement stmt = PrepareStatement(sql);
              ResultSet rs = stmt.executeQuery()) {
             if (rs.next()) {
                 return rs.getInt("id");
@@ -213,7 +213,7 @@ public abstract class Database {
             sql = "INSERT INTO posts (username, email, password_hash, gender, bio, pfp, admin) VALUES (?, ?, ?, ?, ?, ?, ?)";
         else
             sql = "INSERT INTO posts (username, email, password_hash, gender, bio, pfp) VALUES (?, ?, ?, ?, ?, ?)";
-        try (PreparedStatement stmt = conn.prepareStatement(sql)) {
+        try (PreparedStatement stmt = PrepareStatement(sql)) {
             stmt.setString(1, user.getUsername());
             stmt.setString(2, user.getEmail());
             stmt.setString(3, HashPassword(user.getPassword()));
@@ -228,7 +228,7 @@ public abstract class Database {
 
     public static void UpdateUser(User user) throws SQLException {
         String sql = "UPDATE users SET username = ?, password_hash = ?, bio = ?, pfp = ? WHERE id = ?";
-        try (PreparedStatement stmt = conn.prepareStatement(sql)) {
+        try (PreparedStatement stmt = PrepareStatement(sql)) {
             stmt.setString(1, user.getUsername());
             stmt.setString(2, HashPassword(user.getPassword()));
             stmt.setString(3, user.getBio());
@@ -245,7 +245,7 @@ public abstract class Database {
             return;
 
         String sql = "INSERT INTO followers (follower_id, followed_id) VALUES (?, ?)";
-        try (PreparedStatement stmt = conn.prepareStatement(sql)) {
+        try (PreparedStatement stmt = PrepareStatement(sql)) {
             stmt.setInt(1, senderId);
             stmt.setInt(2, receiverId);
             stmt.executeUpdate();
@@ -255,7 +255,7 @@ public abstract class Database {
     public static ArrayList<User> GetAllUsers() throws SQLException {
         ArrayList<User> users = new ArrayList<>();
         String sql = "SELECT * FROM users ORDER BY id DESC";
-        try (PreparedStatement stmt = conn.prepareStatement(sql);
+        try (PreparedStatement stmt = PrepareStatement(sql);
              ResultSet rs = stmt.executeQuery()) {
             while (rs.next()) {
                 if(rs.getInt("admin") == 1)
@@ -273,7 +273,7 @@ public abstract class Database {
 
     public static User GetUser(int id) throws SQLException {
         String sql = "SELECT * FROM users WHERE (id = " + id + ")";
-        try (PreparedStatement stmt = conn.prepareStatement(sql)) {
+        try (PreparedStatement stmt = PrepareStatement(sql)) {
             ResultSet rs = stmt.executeQuery();
             if (rs.next()) {
                 if(rs.getInt("admin") == 1)
@@ -293,7 +293,7 @@ public abstract class Database {
         ArrayList<User> friends = new ArrayList<>();
         int id = user.getId();
         String sql = "SELECT * FROM followers WHERE accepted = 1 AND (follower_id = " + id + " OR followed_id = " + id + ") ORDER BY create_time DESC";
-        try (PreparedStatement stmt = conn.prepareStatement(sql)) {
+        try (PreparedStatement stmt = PrepareStatement(sql)) {
             ResultSet rs = stmt.executeQuery();
             while (rs.next()) {
                 int follower_id = rs.getInt("follower_id");
@@ -306,7 +306,7 @@ public abstract class Database {
     public static ArrayList<User> GetSentFriendRequests(User user) throws SQLException {
         ArrayList<User> friends = new ArrayList<>();
         String sql = "SELECT * FROM followers WHERE accepted = 0 AND (follower_id = " + user.getId() + ") ORDER BY create_time DESC";
-        try (PreparedStatement stmt = conn.prepareStatement(sql)) {
+        try (PreparedStatement stmt = PrepareStatement(sql)) {
             ResultSet rs = stmt.executeQuery();
             while (rs.next()) {
                 friends.add(GetUser(rs.getInt("followed_id")));
@@ -318,7 +318,7 @@ public abstract class Database {
     public static ArrayList<User> GetReceivedFriendRequests(User user) throws SQLException {
         ArrayList<User> friends = new ArrayList<>();
         String sql = "SELECT * FROM followers WHERE accepted = 0 AND (followed_id = " + user.getId() + ") ORDER BY create_time DESC";
-        try (PreparedStatement stmt = conn.prepareStatement(sql)) {
+        try (PreparedStatement stmt = PrepareStatement(sql)) {
             ResultSet rs = stmt.executeQuery();
             while (rs.next()) {
                 friends.add(GetUser(rs.getInt("follower_id")));
@@ -329,9 +329,9 @@ public abstract class Database {
 
     public static void InsertMessage(Message msg) throws SQLException {
         String sql = "INSERT INTO messages (sender_id, receiver_id, content, media_url, media_type) VALUES (?, ?, ?, ?, ?)";
-        try (PreparedStatement stmt = conn.prepareStatement(sql)) {
-            stmt.setInt(1, msg.GetSender().getID());
-            stmt.setInt(2, msg.GetReceiver().getID());
+        try (PreparedStatement stmt = PrepareStatement(sql)) {
+            stmt.setInt(1, msg.GetSender().getId());
+            stmt.setInt(2, msg.GetReceiver().getId());
             stmt.setString(3, msg.GetText());
             stmt.setString(4, msg.GetMedia().GetURL());
             stmt.setString(5, msg.GetMedia().GetType().toString());
@@ -341,7 +341,7 @@ public abstract class Database {
 
     public static void EditMessage(Message msg) throws SQLException {
         String sql = "UPDATE messages SET content = ?, media_url = ?, media_type = ? WHERE id = ?";
-        try (PreparedStatement stmt = conn.prepareStatement(sql)) {
+        try (PreparedStatement stmt = PrepareStatement(sql)) {
             stmt.setString(1, msg.GetText());
             stmt.setString(2, msg.GetMedia().GetURL());
             stmt.setString(3, msg.GetMedia().GetType().toString());
@@ -359,7 +359,7 @@ public abstract class Database {
             sql = "SELECT * FROM messages ORDER BY id DESC WHERE (sender_id = ? AND receiver_id = ?) OR (sender_id = ? AND receiver_id = ?) AND id < ? LIMIT 20";
         else
             sql = "SELECT * FROM messages ORDER BY id DESC WHERE (sender_id = ? AND receiver_id = ?) OR (sender_id = ? AND receiver_id = ?) LIMIT 20";
-        try(PreparedStatement stmt = conn.prepareStatement(sql)) {
+        try(PreparedStatement stmt = PrepareStatement(sql)) {
             stmt.setInt(1, id1); stmt.setInt(2, id2);
             stmt.setInt(3, id2); stmt.setInt(4, id1);
             if(lastMessageID > 0)
@@ -381,7 +381,7 @@ public abstract class Database {
         int id1 = u1.getId();
         int id2 = u2.getId();
         String sql = "SELECT * FROM messages ORDER BY id ASC WHERE (sender_id = ? AND receiver_id = ?) OR (sender_id = ? AND receiver_id = ?) AND id > ?";
-        try(PreparedStatement stmt = conn.prepareStatement(sql)) {
+        try(PreparedStatement stmt = PrepareStatement(sql)) {
             stmt.setInt(1, id1); stmt.setInt(2, id2);
             stmt.setInt(3, id2); stmt.setInt(4, id1);
             stmt.setInt(5, lastMessageID);
@@ -404,7 +404,7 @@ public abstract class Database {
     // BOOKMARK: Comments
     public static void InsertComment(Comment c) throws SQLException {
         String sql = "INSERT INTO comments (post_id, author_id, parent_id, content, media_url, media_type) VALUES (?, ?, ?, ?, ?, ?)";
-        try (PreparedStatement stmt = conn.prepareStatement(sql)) {
+        try (PreparedStatement stmt = PrepareStatement(sql)) {
             stmt.setInt(1, c.getPost().getID());
             stmt.setInt(2, c.getAuthor().getId());
             stmt.setInt(3, c.getParent().getID());
@@ -419,13 +419,13 @@ public abstract class Database {
         ArrayList<Comment> comments = new ArrayList<>();
         String sql = "SELECT * FROM comments ORDER BY id DESC WHERE (post_id = " + postid + ")";
 
-        try (PreparedStatement stmt = conn.prepareStatement(sql);
+        try (PreparedStatement stmt = PrepareStatement(sql);
              ResultSet rs = stmt.executeQuery()) {
             while (rs.next()) {
                 int commentID = rs.getInt("id");
                 int votes = 0;
                 String sql2 = "SELECT * FROM votes_comments WHERE (comment_id = " + commentID + ")";
-                try (PreparedStatement stmt2 = conn.prepareStatement(sql2);
+                try (PreparedStatement stmt2 = PrepareStatement(sql2);
                      ResultSet rs2 = stmt2.executeQuery()) {
                     while(rs2.next()) {
                         votes += (rs2.getString("value").equalsIgnoreCase("Up")? 1 : -1);
@@ -445,12 +445,12 @@ public abstract class Database {
 
         String sql = "SELECT * FROM comments WHERE (id = " + commentid + ")";
 
-        try (PreparedStatement stmt = conn.prepareStatement(sql);
+        try (PreparedStatement stmt = PrepareStatement(sql);
              ResultSet rs = stmt.executeQuery()) {
             if (rs.next()) {
                 int votes = 0;
                 String sql2 = "SELECT * FROM votes_comments WHERE (comment_id = " + commentid + ")";
-                try (PreparedStatement stmt2 = conn.prepareStatement(sql2);
+                try (PreparedStatement stmt2 = PrepareStatement(sql2);
                      ResultSet rs2 = stmt2.executeQuery()) {
                     while(rs2.next()) {
                         votes += (rs2.getString("value").equalsIgnoreCase("Up")? 1 : -1);
@@ -469,7 +469,7 @@ public abstract class Database {
     // BOOKMARK: Subcreddits
     public static void InsertSubcreddit(Subcreddit sub) throws SQLException {
         String sql = "INSERT INTO subcreddits (name, description, creator_id, logo, private) VALUES (?, ?, ?, ?, ?)";
-        try (PreparedStatement stmt = conn.prepareStatement(sql)) {
+        try (PreparedStatement stmt = PrepareStatement(sql)) {
             stmt.setString(1, sub.getName());
             stmt.setString(2, sub.getDescription());
             stmt.setInt(3, sub.getCreator().getID());
@@ -483,13 +483,13 @@ public abstract class Database {
         ArrayList<Subcreddit> subcreddits = new ArrayList<>();
         String sql = "SELECT * FROM subcreddits ORDER BY id DESC";
 
-        try (PreparedStatement stmt = conn.prepareStatement(sql);
+        try (PreparedStatement stmt = PrepareStatement(sql);
              ResultSet rs = stmt.executeQuery()) {
             while (rs.next()) {
                 int subID = rs.getInt("id");
                 ArrayList<User> members = new ArrayList<>();
                 String sql2 = "SELECT * FROM subcreddit_members ORDER BY create_time ASC WHERE (subcreddit_id = " + subID + ")";
-                try (PreparedStatement stmt2 = conn.prepareStatement(sql2);
+                try (PreparedStatement stmt2 = PrepareStatement(sql2);
                      ResultSet rs2 = stmt2.executeQuery()) {
                     while(rs2.next()) {
                         if(rs2.getInt("accepted") == 1) {
@@ -512,12 +512,12 @@ public abstract class Database {
 
         String sql = "SELECT * FROM subcreddits WHERE (id = " + subID + ")";
 
-        try (PreparedStatement stmt = conn.prepareStatement(sql);
+        try (PreparedStatement stmt = PrepareStatement(sql);
              ResultSet rs = stmt.executeQuery()) {
             if (rs.next()) {
                 ArrayList<User> members = new ArrayList<>();
                 String sql2 = "SELECT * FROM subcreddit_members ORDER BY create_time ASC WHERE (subcreddit_id = " + subID + ")";
-                try (PreparedStatement stmt2 = conn.prepareStatement(sql2);
+                try (PreparedStatement stmt2 = PrepareStatement(sql2);
                      ResultSet rs2 = stmt2.executeQuery()) {
                     while(rs2.next()) {
                         if(rs2.getInt("accepted") == 1) {
@@ -540,7 +540,7 @@ public abstract class Database {
         ArrayList<User> bannedMembers = new ArrayList<>();
         String sql = "SELECT * FROM bans ORDER BY id DESC WHERE (subcreddit_id = " + subID + ")";
 
-        try (PreparedStatement stmt = conn.prepareStatement(sql);
+        try (PreparedStatement stmt = PrepareStatement(sql);
              ResultSet rs = stmt.executeQuery()) {
             while (rs.next()) {
                 bannedMembers.add(GetUser(rs.getInt("user_id")));

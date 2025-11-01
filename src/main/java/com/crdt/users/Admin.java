@@ -9,10 +9,10 @@ public class Admin extends User {
         super(id, username, email, password, gender, bio, pfp, timeCreated);
     }
 
-   public void BanMember(User user) {
+   public void BanUser(User user) {
 
    }
-   public void UnbanMember(User user){
+   public void UnbanUser(User user){
 
     }
 
