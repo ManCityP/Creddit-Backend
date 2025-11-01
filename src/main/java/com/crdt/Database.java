@@ -8,15 +8,15 @@ import de.mkammerer.argon2.*;
 import java.sql.*;
 import java.util.*;
 
-public class Database {
-    private final Connection conn;
+public abstract class Database {
+    private static Connection conn;
     private static final Argon2Advanced ARGON2 = Argon2Factory.createAdvanced(Argon2Factory.Argon2Types.ARGON2id);
 
-    public Database(String url, String user, String pass) throws SQLException {
+    public static void Connect(String url, String user, String pass) throws SQLException {
         conn = DriverManager.getConnection(url, user, pass);
     }
 
-    public void CloseConnection() {
+    public static void CloseConnection() {
         try {
             if (conn != null)
                 conn.close();
@@ -27,15 +27,7 @@ public class Database {
         }
     }
 
-    public ResultSet GetAny(String query) throws Exception {
-        Statement stmt = conn.createStatement();
-        return stmt.executeQuery(query);
-    }
-
-    public void Execute(String sql) throws Exception {
-        PreparedStatement insertStatement = conn.prepareStatement(sql);
-        insertStatement.executeUpdate();
-    }
+    public static PreparedStatement PrepareStatement(String sql) throws SQLException {  return conn.prepareStatement(sql);  }
 
     private static String HashPassword(String password) {
         int iterations = 3;
@@ -53,8 +45,10 @@ public class Database {
 
 
 
+    // TODO: MOVE A LOT OF THESE FUNCTIONS TO THEIR RESPECTIVE CLASSES!!!
+
     // BOOKMARK: Posts
-    public void InsertPost(Post p) throws SQLException {
+    public static void InsertPost(Post p) throws SQLException {
         for(String category : p.getCategories()) {
             int categoryID = CategoryExists(category);
             if(categoryID == 0)
@@ -77,7 +71,7 @@ public class Database {
         }
     }
 
-    public int InsertCategory(String category) throws SQLException {
+    public static int InsertCategory(String category) throws SQLException {
         String sql = "INSERT INTO categories (name) VALUES (?)";
         try (PreparedStatement stmt = conn.prepareStatement(sql)) {
             stmt.setString(1, category);
@@ -90,7 +84,7 @@ public class Database {
         return 0;
     }
 
-    public ArrayList<Post> GetAllPosts() throws SQLException {
+    public static ArrayList<Post> GetAllPosts() throws SQLException {
         ArrayList<Post> posts = new ArrayList<>();
         String sql = "SELECT * FROM posts ORDER BY id DESC";
         try (PreparedStatement stmt = conn.prepareStatement(sql);
@@ -125,7 +119,7 @@ public class Database {
         return posts;
     }
 
-    public Post GetPost(int postid) throws SQLException {
+    public static Post GetPost(int postid) throws SQLException {
         if(postid <= 0)
             return null;
 
@@ -160,7 +154,7 @@ public class Database {
         return null;
     }
 
-    public ArrayList<String> GetPostCategories(int postID) throws SQLException {
+    public static ArrayList<String> GetPostCategories(int postID) throws SQLException {
         ArrayList<String> categories = new ArrayList<>();
         String sql = "SELECT * FROM post_categories WHERE (post_id = " + postID + ")";
         try (PreparedStatement stmt = conn.prepareStatement(sql);
@@ -172,7 +166,7 @@ public class Database {
         return categories;
     }
 
-    public ArrayList<String> GetAllCategories() throws SQLException {
+    public static ArrayList<String> GetAllCategories() throws SQLException {
         ArrayList<String> categories = new ArrayList<>();
         String sql = "SELECT * FROM categories ORDER BY name ASC";
         try (PreparedStatement stmt = conn.prepareStatement(sql);
@@ -184,7 +178,7 @@ public class Database {
         return categories;
     }
 
-    public String GetCategory(int categoryID) throws SQLException {
+    public static String GetCategory(int categoryID) throws SQLException {
         if(categoryID <= 0)
             return null;
 
@@ -198,7 +192,7 @@ public class Database {
         return null;
     }
 
-    public int CategoryExists(String categoryName) throws SQLException {
+    public static int CategoryExists(String categoryName) throws SQLException {
         String sql = "SELECT * FROM categories WHERE (name = " + categoryName.toLowerCase() + ")";
         try (PreparedStatement stmt = conn.prepareStatement(sql);
              ResultSet rs = stmt.executeQuery()) {
@@ -213,9 +207,7 @@ public class Database {
 
 
     // BOOKMARK: Users
-    public void InsertUser(User user) throws SQLException {
-        String password_hash = HashPassword(user.getPassword());
-
+    public static void InsertUser(User user) throws SQLException {
         String sql;
         if(user instanceof Admin)
             sql = "INSERT INTO posts (username, email, password_hash, gender, bio, pfp, admin) VALUES (?, ?, ?, ?, ?, ?, ?)";
@@ -224,7 +216,7 @@ public class Database {
         try (PreparedStatement stmt = conn.prepareStatement(sql)) {
             stmt.setString(1, user.getUsername());
             stmt.setString(2, user.getEmail());
-            stmt.setString(3, password_hash);
+            stmt.setString(3, HashPassword(user.getPassword()));
             stmt.setString(4, user.getGender().toString());
             stmt.setString(5, user.getBio());
             stmt.setString(6, user.getPfp().GetURL());
@@ -234,7 +226,33 @@ public class Database {
         }
     }
 
-    public ArrayList<User> GetAllUsers() throws SQLException {
+    public static void UpdateUser(User user) throws SQLException {
+        String sql = "UPDATE users SET username = ?, password_hash = ?, bio = ?, pfp = ? WHERE id = ?";
+        try (PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setString(1, user.getUsername());
+            stmt.setString(2, HashPassword(user.getPassword()));
+            stmt.setString(3, user.getBio());
+            stmt.setString(4, user.getPfp().GetURL());
+            stmt.setInt(5, user.getId());
+            stmt.executeUpdate();
+        }
+    }
+
+    public static void SendFriendRequest(User sender, User receiver) throws SQLException {
+        int senderId = sender.getId();
+        int receiverId = receiver.getId();
+        if(GetFriends(sender).contains(receiver) || GetSentFriendRequests(sender).contains(receiver) || GetReceivedFriendRequests(sender).contains(receiver))
+            return;
+
+        String sql = "INSERT INTO followers (follower_id, followed_id) VALUES (?, ?)";
+        try (PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setInt(1, senderId);
+            stmt.setInt(2, receiverId);
+            stmt.executeUpdate();
+        }
+    }
+
+    public static ArrayList<User> GetAllUsers() throws SQLException {
         ArrayList<User> users = new ArrayList<>();
         String sql = "SELECT * FROM users ORDER BY id DESC";
         try (PreparedStatement stmt = conn.prepareStatement(sql);
@@ -253,7 +271,7 @@ public class Database {
         return users;
     }
 
-    public User GetUser(int id) throws SQLException {
+    public static User GetUser(int id) throws SQLException {
         String sql = "SELECT * FROM users WHERE (id = " + id + ")";
         try (PreparedStatement stmt = conn.prepareStatement(sql)) {
             ResultSet rs = stmt.executeQuery();
@@ -271,11 +289,120 @@ public class Database {
         return null;
     }
 
+    public static ArrayList<User> GetFriends(User user) throws SQLException {
+        ArrayList<User> friends = new ArrayList<>();
+        int id = user.getId();
+        String sql = "SELECT * FROM followers WHERE accepted = 1 AND (follower_id = " + id + " OR followed_id = " + id + ") ORDER BY create_time DESC";
+        try (PreparedStatement stmt = conn.prepareStatement(sql)) {
+            ResultSet rs = stmt.executeQuery();
+            while (rs.next()) {
+                int follower_id = rs.getInt("follower_id");
+                friends.add(GetUser(follower_id == id? rs.getInt("followed_id") : follower_id));
+            }
+        }
+        return friends;
+    }
+
+    public static ArrayList<User> GetSentFriendRequests(User user) throws SQLException {
+        ArrayList<User> friends = new ArrayList<>();
+        String sql = "SELECT * FROM followers WHERE accepted = 0 AND (follower_id = " + user.getId() + ") ORDER BY create_time DESC";
+        try (PreparedStatement stmt = conn.prepareStatement(sql)) {
+            ResultSet rs = stmt.executeQuery();
+            while (rs.next()) {
+                friends.add(GetUser(rs.getInt("followed_id")));
+            }
+        }
+        return friends;
+    }
+
+    public static ArrayList<User> GetReceivedFriendRequests(User user) throws SQLException {
+        ArrayList<User> friends = new ArrayList<>();
+        String sql = "SELECT * FROM followers WHERE accepted = 0 AND (followed_id = " + user.getId() + ") ORDER BY create_time DESC";
+        try (PreparedStatement stmt = conn.prepareStatement(sql)) {
+            ResultSet rs = stmt.executeQuery();
+            while (rs.next()) {
+                friends.add(GetUser(rs.getInt("follower_id")));
+            }
+        }
+        return friends;
+    }
+
+    public static void InsertMessage(Message msg) throws SQLException {
+        String sql = "INSERT INTO messages (sender_id, receiver_id, content, media_url, media_type) VALUES (?, ?, ?, ?, ?)";
+        try (PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setInt(1, msg.GetSender().getID());
+            stmt.setInt(2, msg.GetReceiver().getID());
+            stmt.setString(3, msg.GetText());
+            stmt.setString(4, msg.GetMedia().GetURL());
+            stmt.setString(5, msg.GetMedia().GetType().toString());
+            stmt.executeUpdate();
+        }
+    }
+
+    public static void EditMessage(Message msg) throws SQLException {
+        String sql = "UPDATE messages SET content = ?, media_url = ?, media_type = ? WHERE id = ?";
+        try (PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setString(1, msg.GetText());
+            stmt.setString(2, msg.GetMedia().GetURL());
+            stmt.setString(3, msg.GetMedia().GetType().toString());
+            stmt.setInt(4, msg.GetID());
+            stmt.executeUpdate();
+        }
+    }
+
+    public static ArrayList<Message> GetPrivateMessageFeed(User u1, User u2, int lastMessageID) throws SQLException {
+        ArrayList<Message> messages = new ArrayList<>();
+        int id1 = u1.getId();
+        int id2 = u2.getId();
+        String sql;
+        if(lastMessageID > 0)
+            sql = "SELECT * FROM messages ORDER BY id DESC WHERE (sender_id = ? AND receiver_id = ?) OR (sender_id = ? AND receiver_id = ?) AND id < ? LIMIT 20";
+        else
+            sql = "SELECT * FROM messages ORDER BY id DESC WHERE (sender_id = ? AND receiver_id = ?) OR (sender_id = ? AND receiver_id = ?) LIMIT 20";
+        try(PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setInt(1, id1); stmt.setInt(2, id2);
+            stmt.setInt(3, id2); stmt.setInt(4, id1);
+            if(lastMessageID > 0)
+                stmt.setInt(5, lastMessageID);
+            ResultSet rs = stmt.executeQuery();
+            while(rs.next()) {
+                int sender_id = rs.getInt("sender_id");
+                messages.add(new Message(rs.getInt("id"), sender_id == id1? u1 : u2, sender_id == id1? u2 : u1,
+                        rs.getString("content"), new Media(MediaType.toMediaType(rs.getString("media_type")), rs.getString("media_url")),
+                        rs.getTimestamp("create_time"), rs.getTimestamp("edit_time"), rs.getInt("read") == 0? false : true
+                ));
+            }
+        }
+        return messages;
+    }
+
+    public static ArrayList<Message> GetLatestPrivateMessages(User u1, User u2, int lastMessageID) throws SQLException {
+        ArrayList<Message> messages = new ArrayList<>();
+        int id1 = u1.getId();
+        int id2 = u2.getId();
+        String sql = "SELECT * FROM messages ORDER BY id ASC WHERE (sender_id = ? AND receiver_id = ?) OR (sender_id = ? AND receiver_id = ?) AND id > ?";
+        try(PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setInt(1, id1); stmt.setInt(2, id2);
+            stmt.setInt(3, id2); stmt.setInt(4, id1);
+            stmt.setInt(5, lastMessageID);
+            ResultSet rs = stmt.executeQuery();
+            while(rs.next()) {
+                int sender_id = rs.getInt("sender_id");
+                messages.add(new Message(rs.getInt("id"), sender_id == id1? u1 : u2, sender_id == id1? u2 : u1,
+                        rs.getString("content"), new Media(MediaType.toMediaType(rs.getString("media_type")), rs.getString("media_url")),
+                        rs.getTimestamp("create_time"), rs.getTimestamp("edit_time"), rs.getInt("read") == 0? false : true
+                ));
+            }
+        }
+        return messages;
+    }
+
+
 
 
 
     // BOOKMARK: Comments
-    public void InsertComment(Comment c) throws SQLException {
+    public static void InsertComment(Comment c) throws SQLException {
         String sql = "INSERT INTO comments (post_id, author_id, parent_id, content, media_url, media_type) VALUES (?, ?, ?, ?, ?, ?)";
         try (PreparedStatement stmt = conn.prepareStatement(sql)) {
             stmt.setInt(1, c.getPost().getID());
@@ -288,7 +415,7 @@ public class Database {
         }
     }
 
-    public ArrayList<Comment> GetAllComments(int postid) throws SQLException {
+    public static ArrayList<Comment> GetAllComments(int postid) throws SQLException {
         ArrayList<Comment> comments = new ArrayList<>();
         String sql = "SELECT * FROM comments ORDER BY id DESC WHERE (post_id = " + postid + ")";
 
@@ -312,7 +439,7 @@ public class Database {
         }
         return comments;
     }
-    public Comment GetComment(int commentid) throws SQLException {
+    public static Comment GetComment(int commentid) throws SQLException {
         if(commentid <= 0)
             return null;
 
@@ -340,7 +467,7 @@ public class Database {
 
 
     // BOOKMARK: Subcreddits
-    public void InsertSubcreddit(Subcreddit sub) throws SQLException {
+    public static void InsertSubcreddit(Subcreddit sub) throws SQLException {
         String sql = "INSERT INTO subcreddits (name, description, creator_id, logo, private) VALUES (?, ?, ?, ?, ?)";
         try (PreparedStatement stmt = conn.prepareStatement(sql)) {
             stmt.setString(1, sub.getName());
@@ -352,7 +479,7 @@ public class Database {
         }
     }
 
-    public ArrayList<Subcreddit> GetAllSubcreddits() throws SQLException {
+    public static ArrayList<Subcreddit> GetAllSubcreddits() throws SQLException {
         ArrayList<Subcreddit> subcreddits = new ArrayList<>();
         String sql = "SELECT * FROM subcreddits ORDER BY id DESC";
 
@@ -379,7 +506,7 @@ public class Database {
         return subcreddits;
     }
 
-    public Subcreddit GetSubcreddit(int subID) throws SQLException {
+    public static Subcreddit GetSubcreddit(int subID) throws SQLException {
         if(subID <= 0)
             return null;
 
@@ -406,7 +533,7 @@ public class Database {
         return null;
     }
 
-    public ArrayList<User> GetSubcredditBannedMembers(int subID) throws SQLException {
+    public static ArrayList<User> GetSubcredditBannedMembers(int subID) throws SQLException {
         if(subID <= 0)
             return null;
 

@@ -19,7 +19,7 @@ public class Server {
     public static void main(String[] args) throws Exception {
         String tunnelURL = System.getenv("server_url");
 
-        Database db = new Database(
+        Database.Connect(
                 System.getenv("db_url"),
                 System.getenv("db_user"),
                 System.getenv("pass")
@@ -30,7 +30,7 @@ public class Server {
             builder.redirectErrorStream(true);
             ngrokProcess = builder.start();
             Runtime.getRuntime().addShutdownHook(new Thread(() -> {
-                db.CloseConnection();
+                Database.CloseConnection();
                 if(ngrokProcess.isAlive()) {
                     try {
                         Runtime.getRuntime().exec("taskkill /F /IM ngrok.exe /T");
@@ -92,7 +92,7 @@ public class Server {
         post("/post", (req, res) -> {
             try {
                 Post post = gson.fromJson(req.body(), Post.class);
-                db.InsertPost(post);
+                Database.InsertPost(post);
                 res.type("application/json");
                 return gson.toJson(Map.of("status", "ok"));
             } catch (Exception e) {
@@ -105,21 +105,21 @@ public class Server {
         // Route: Get a specific post
         get("/post", (req, res) -> {
             int id = Integer.parseInt(req.queryParams("id"));
-            Post post = db.GetPost(id);
+            Post post = Database.GetPost(id);
             res.type("application/json");
             return gson.toJson(post);
         });
 
         // Route: Get all posts
         get("/post/all", (req, res) -> {
-            ArrayList<Post> posts = db.GetAllPosts();
+            ArrayList<Post> posts = Database.GetAllPosts();
             res.type("application/json");
             return gson.toJson(posts);
         });
 
         // Route: Get all categories
         get("/category/all", (req, res) -> {
-            ArrayList<String> categories = db.GetAllCategories();
+            ArrayList<String> categories = Database.GetAllCategories();
             res.type("application/json");
             return gson.toJson(categories);
         });
@@ -130,7 +130,71 @@ public class Server {
         post("/user", (req, res) -> {
             try {
                 User user = gson.fromJson(req.body(), User.class);
-                db.InsertUser(user);
+                //TODO: This should verify the validity of the info
+                Database.InsertUser(user);
+                res.type("application/json");
+                return gson.toJson(Map.of("status", "ok"));
+            } catch (Exception e) {
+                e.printStackTrace(); // server log
+                res.status(500);
+                return gson.toJson(Map.of("status", "error", "message", e.getMessage()));
+            }
+        });
+
+        // Route: Update user info
+        post("/update/user", (req, res) -> {
+            try {
+                User user = gson.fromJson(req.body(), User.class);
+                //TODO: This should verify the validity of the info
+                Database.UpdateUser(user);
+                res.type("application/json");
+                return gson.toJson(Map.of("status", "ok"));
+            } catch (Exception e) {
+                e.printStackTrace(); // server log
+                res.status(500);
+                return gson.toJson(Map.of("status", "error", "message", e.getMessage()));
+            }
+        });
+
+        // Route: Send Friend Request
+        post("/friends/send", (req, res) -> {
+            try {
+                Gson gson = new Gson();
+                JsonObject json = gson.fromJson(req.body(), JsonObject.class);
+                User sender = gson.fromJson(json.get("sender"), User.class);
+                User receiver = gson.fromJson(json.get("receiver"), User.class);
+
+                Database.SendFriendRequest(sender, receiver);
+                res.type("application/json");
+                return gson.toJson(Map.of("status", "ok"));
+            } catch (Exception e) {
+                e.printStackTrace(); // server log
+                res.status(500);
+                return gson.toJson(Map.of("status", "error", "message", e.getMessage()));
+            }
+        });
+
+        // Route: Send Private message
+        post("/pm/send", (req, res) -> {
+            try {
+                Message msg = gson.fromJson(req.body(), Message.class);
+                //TODO: This should verify the validity of the info
+                Database.InsertMessage(msg);
+                res.type("application/json");
+                return gson.toJson(Map.of("status", "ok"));
+            } catch (Exception e) {
+                e.printStackTrace(); // server log
+                res.status(500);
+                return gson.toJson(Map.of("status", "error", "message", e.getMessage()));
+            }
+        });
+
+        // Route: Edit Private message
+        post("/pm/edit", (req, res) -> {
+            try {
+                Message msg = gson.fromJson(req.body(), Message.class);
+                //TODO: This should verify the validity of the info
+                Database.EditMessage(msg);
                 res.type("application/json");
                 return gson.toJson(Map.of("status", "ok"));
             } catch (Exception e) {
@@ -143,17 +207,66 @@ public class Server {
         // Route: Get a specific user
         get("/user", (req, res) -> {
             int id = Integer.parseInt(req.queryParams("id"));
-            User user = db.GetUser(id);
+            User user = Database.GetUser(id);
             res.type("application/json");
             return gson.toJson(user);
         });
 
         // Route: Get all users
         get("/user/all", (req, res) -> {
-            ArrayList<User> users = db.GetAllUsers();
+            ArrayList<User> users = Database.GetAllUsers();
             res.type("application/json");
             return gson.toJson(users);
         });
+
+        // Route: Get user's friends
+        get("/friends", (req, res) -> {
+            User user = gson.fromJson(req.body(), User.class);
+            ArrayList<User> users = Database.GetFriends(user);
+            res.type("application/json");
+            return gson.toJson(users);
+        });
+
+        // Route: Get user's sent friend requests
+        get("/friends/sent", (req, res) -> {
+            User user = gson.fromJson(req.body(), User.class);
+            ArrayList<User> users = Database.GetSentFriendRequests(user);
+            res.type("application/json");
+            return gson.toJson(users);
+        });
+
+        // Route: Get user's received friend requests
+        get("/friends/received", (req, res) -> {
+            User user = gson.fromJson(req.body(), User.class);
+            ArrayList<User> users = Database.GetReceivedFriendRequests(user);
+            res.type("application/json");
+            return gson.toJson(users);
+        });
+
+        // Route: Get user's private message feed
+        get("/pm/feed", (req, res) -> {
+            Gson gson = new Gson();
+            JsonObject json = gson.fromJson(req.body(), JsonObject.class);
+            User user1 = gson.fromJson(json.get("user1"), User.class);
+            User user2 = gson.fromJson(json.get("user2"), User.class);
+            int lastMessageID = gson.fromJson(json.get("lastID"), int.class);
+            ArrayList<Message> messages = Database.GetPrivateMessageFeed(user1, user2, lastMessageID);
+            res.type("application/json");
+            return gson.toJson(messages);
+        });
+
+        // Route: Get user's private message feed
+        get("/pm/update", (req, res) -> {
+            Gson gson = new Gson();
+            JsonObject json = gson.fromJson(req.body(), JsonObject.class);
+            User user1 = gson.fromJson(json.get("user1"), User.class);
+            User user2 = gson.fromJson(json.get("user2"), User.class);
+            int lastMessageID = gson.fromJson(json.get("lastID"), int.class);
+            ArrayList<Message> messages = Database.GetLatestPrivateMessages(user1, user2, lastMessageID);
+            res.type("application/json");
+            return gson.toJson(messages);
+        });
+
 
 
 
@@ -162,7 +275,8 @@ public class Server {
         post("/comment", (req, res) -> {
             try {
                 Comment comment = gson.fromJson(req.body(), Comment.class);
-                db.InsertComment(comment);
+                //TODO: This should verify the validity of the info
+                Database.InsertComment(comment);
                 res.type("application/json");
                 return gson.toJson(Map.of("status", "ok"));
             } catch (Exception e) {
@@ -175,7 +289,7 @@ public class Server {
         // Route: Get a specific comment
         get("/comment", (req, res) -> {
             int id = Integer.parseInt(req.queryParams("id"));
-            Comment comment = db.GetComment(id);
+            Comment comment = Database.GetComment(id);
             res.type("application/json");
             return gson.toJson(comment);
         });
@@ -183,7 +297,7 @@ public class Server {
         // Route: Get all comments
         get("/comments", (req, res) -> {
             int postid = Integer.parseInt(req.queryParams("postid"));
-            ArrayList<Comment> comments = db.GetAllComments(postid);
+            ArrayList<Comment> comments = Database.GetAllComments(postid);
             res.type("application/json");
             return gson.toJson(comments);
         });
@@ -195,7 +309,8 @@ public class Server {
         post("/subcreddit", (req, res) -> {
             try {
                 Subcreddit subcreddit = gson.fromJson(req.body(), Subcreddit.class);
-                db.InsertSubcreddit(subcreddit);
+                //TODO: This should verify the validity of the info
+                Database.InsertSubcreddit(subcreddit);
                 res.type("application/json");
                 return gson.toJson(Map.of("status", "ok"));
             } catch (Exception e) {
@@ -208,14 +323,14 @@ public class Server {
         // Route: Get a specific subcreddit
         get("/subcreddit", (req, res) -> {
             int id = Integer.parseInt(req.queryParams("id"));
-            Subcreddit subcreddit = db.GetSubcreddit(id);
+            Subcreddit subcreddit = Database.GetSubcreddit(id);
             res.type("application/json");
             return gson.toJson(subcreddit);
         });
 
         // Route: Get all subcreddits
         get("/subcreddit/all", (req, res) -> {
-            ArrayList<Subcreddit> subcreddits = db.GetAllSubcreddits();
+            ArrayList<Subcreddit> subcreddits = Database.GetAllSubcreddits();
             res.type("application/json");
             return gson.toJson(subcreddits);
         });
@@ -223,7 +338,7 @@ public class Server {
         // Route: Get subcreddit bans
         get("/subcreddit/bans", (req, res) -> {
             int id = Integer.parseInt(req.queryParams("id"));
-            ArrayList<User> bannedMembers = db.GetSubcredditBannedMembers(id);
+            ArrayList<User> bannedMembers = Database.GetSubcredditBannedMembers(id);
             res.type("application/json");
             return gson.toJson(bannedMembers);
         });
