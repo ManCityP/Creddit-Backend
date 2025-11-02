@@ -33,13 +33,13 @@ public class Server {
             ngrokProcess = builder.start();
             Runtime.getRuntime().addShutdownHook(new Thread(() -> {
                 Database.CloseConnection();
-                if(ngrokProcess.isAlive()) {
+                //if(ngrokProcess.isAlive()) {
                     try {
                         Runtime.getRuntime().exec("taskkill /F /IM ngrok.exe /T");
                     } catch (Exception ex) {
                         ex.printStackTrace();
                     }
-                }
+                //}
             }));
             Thread.sleep(100);
         }
