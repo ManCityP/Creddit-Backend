@@ -131,7 +131,7 @@ public class Server {
             try {
                 User user = gson.fromJson(req.body(), User.class);
                 //TODO: This should verify the validity of the info
-                user.createUser();
+                user.create();
                 res.type("application/json");
                 return gson.toJson(Map.of("status", "ok"));
             } catch (Exception e) {
@@ -146,7 +146,7 @@ public class Server {
             try {
                 User user = gson.fromJson(req.body(), User.class);
                 //TODO: This should verify the validity of the info
-                user.updateProfile();
+                user.update();
                 res.type("application/json");
                 return gson.toJson(Map.of("status", "ok"));
             } catch (Exception e) {
@@ -165,6 +165,24 @@ public class Server {
                 User receiver = gson.fromJson(json.get("receiver"), User.class);
 
                 sender.sendFriendRequest(receiver);
+                res.type("application/json");
+                return gson.toJson(Map.of("status", "ok"));
+            } catch (Exception e) {
+                e.printStackTrace(); // server log
+                res.status(500);
+                return gson.toJson(Map.of("status", "error", "message", e.getMessage()));
+            }
+        });
+
+        // Route: Unfriend
+        post("/friends/remove", (req, res) -> {
+            try {
+                Gson gson = new Gson();
+                JsonObject json = gson.fromJson(req.body(), JsonObject.class);
+                User user1 = gson.fromJson(json.get("user1"), User.class);
+                User user2 = gson.fromJson(json.get("user2"), User.class);
+
+                user1.unfriend(user2);
                 res.type("application/json");
                 return gson.toJson(Map.of("status", "ok"));
             } catch (Exception e) {
@@ -217,6 +235,14 @@ public class Server {
             ArrayList<User> users = Database.GetAllUsers();
             res.type("application/json");
             return gson.toJson(users);
+        });
+
+        // Route: Get all user's subcreddits
+        get("/user/subcreddits", (req, res) -> {
+            User user = gson.fromJson(req.body(), User.class);
+            ArrayList<Subcreddit> subcreddits = user.GetSubcreddits();
+            res.type("application/json");
+            return gson.toJson(subcreddits);
         });
 
         // Route: Get user's friends
@@ -276,7 +302,7 @@ public class Server {
             try {
                 Comment comment = gson.fromJson(req.body(), Comment.class);
                 //TODO: This should verify the validity of the info
-                Database.InsertComment(comment);
+                comment.create();
                 res.type("application/json");
                 return gson.toJson(Map.of("status", "ok"));
             } catch (Exception e) {
@@ -320,6 +346,42 @@ public class Server {
             }
         });
 
+        //Route: join a subcreddit
+        post("/subcreddit/join", (req, res) -> {
+            try {
+                Gson gson = new Gson();
+                JsonObject json = gson.fromJson(req.body(), JsonObject.class);
+                User user = gson.fromJson(json.get("user"), User.class);
+                Subcreddit sub = gson.fromJson(json.get("subcreddit"), Subcreddit.class);
+
+                user.joinSubcreddit(sub);
+                res.type("application/json");
+                return gson.toJson(Map.of("status", "ok"));
+            } catch (Exception e) {
+                e.printStackTrace(); // server log
+                res.status(500);
+                return gson.toJson(Map.of("status", "error", "message", e.getMessage()));
+            }
+        });
+
+        //Route: leave a subcreddit
+        post("/subcreddit/leave", (req, res) -> {
+            try {
+                Gson gson = new Gson();
+                JsonObject json = gson.fromJson(req.body(), JsonObject.class);
+                User user = gson.fromJson(json.get("user"), User.class);
+                Subcreddit sub = gson.fromJson(json.get("subcreddit"), Subcreddit.class);
+
+                user.leaveSubcreddit(sub);
+                res.type("application/json");
+                return gson.toJson(Map.of("status", "ok"));
+            } catch (Exception e) {
+                e.printStackTrace(); // server log
+                res.status(500);
+                return gson.toJson(Map.of("status", "error", "message", e.getMessage()));
+            }
+        });
+
         // Route: Get a specific subcreddit
         get("/subcreddit", (req, res) -> {
             int id = Integer.parseInt(req.queryParams("id"));
@@ -337,8 +399,8 @@ public class Server {
 
         // Route: Get subcreddit bans
         get("/subcreddit/bans", (req, res) -> {
-            int id = Integer.parseInt(req.queryParams("id"));
-            ArrayList<User> bannedMembers = Database.GetSubcredditBannedMembers(id);
+            Subcreddit subcreddit = gson.fromJson(req.body(), Subcreddit.class);
+            ArrayList<User> bannedMembers = subcreddit.GetBannedMembers();
             res.type("application/json");
             return gson.toJson(bannedMembers);
         });

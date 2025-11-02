@@ -115,7 +115,6 @@ public abstract class Database {
         return null;
     }
 
-    //TODO: Move this to Post class
     private static ArrayList<String> GetPostCategories(int postID) throws SQLException {
         ArrayList<String> categories = new ArrayList<>();
         String sql = "SELECT * FROM post_categories WHERE (post_id = " + postID + ")";
@@ -182,7 +181,7 @@ public abstract class Database {
                 else
                     users.add(new User(rs.getInt("id"), rs.getString("username"), rs.getString("email"), rs.getString("password_hash"),
                             Gender.toGender(rs.getString("gender")), rs.getString("bio"), new Media(MediaType.IMAGE, rs.getString("pfp")),
-                            rs.getTimestamp("create_time")));
+                            rs.getTimestamp("create_time"), rs.getInt("active") != 0));
             }
         }
         return users;
@@ -200,7 +199,7 @@ public abstract class Database {
 
                 return new User(rs.getInt("id"), rs.getString("username"), rs.getString("email"), rs.getString("password_hash"),
                         Gender.toGender(rs.getString("gender")), rs.getString("bio"), new Media(MediaType.IMAGE, rs.getString("pfp")),
-                        rs.getTimestamp("create_time"));
+                        rs.getTimestamp("create_time"), rs.getInt("active") != 0);
             }
         }
         return null;
@@ -211,19 +210,6 @@ public abstract class Database {
 
 
     // BOOKMARK: Comments
-    public static void InsertComment(Comment c) throws SQLException {
-        String sql = "INSERT INTO comments (post_id, author_id, parent_id, content, media_url, media_type) VALUES (?, ?, ?, ?, ?, ?)";
-        try (PreparedStatement stmt = PrepareStatement(sql)) {
-            stmt.setInt(1, c.getPost().getID());
-            stmt.setInt(2, c.getAuthor().getId());
-            stmt.setInt(3, c.getParent().getID());
-            stmt.setString(4,c.getContent());
-            stmt.setString(5,c.getMedia().GetURL());
-            stmt.setString(6,c.getMedia().GetType().toString());
-            stmt.executeUpdate();
-        }
-    }
-
     public static ArrayList<Comment> GetAllComments(int postid) throws SQLException {
         ArrayList<Comment> comments = new ArrayList<>();
         String sql = "SELECT * FROM comments ORDER BY id DESC WHERE (post_id = " + postid + ")";
@@ -284,20 +270,9 @@ public abstract class Database {
         try (PreparedStatement stmt = PrepareStatement(sql);
              ResultSet rs = stmt.executeQuery()) {
             while (rs.next()) {
-                int subID = rs.getInt("id");
-                ArrayList<User> members = new ArrayList<>();
-                String sql2 = "SELECT * FROM subcreddit_members ORDER BY create_time ASC WHERE (subcreddit_id = " + subID + ")";
-                try (PreparedStatement stmt2 = PrepareStatement(sql2);
-                     ResultSet rs2 = stmt2.executeQuery()) {
-                    while(rs2.next()) {
-                        if(rs2.getInt("accepted") == 1) {
-                            members.add(GetUser(rs2.getInt("user_id")));
-                        }
-                    }
-                }
-                Subcreddit p = new Subcreddit(subID, members, rs.getString("name"), rs.getString("description"),
+                Subcreddit p = new Subcreddit(rs.getInt("id"), rs.getString("name"), rs.getString("description"),
                         rs.getTimestamp("create_time"), GetUser(rs.getInt("creator_id")), new Media(MediaType.IMAGE, rs.getString("logo")),
-                        rs.getInt("private") == 1? true : false);
+                        rs.getInt("private") == 1);
                 subcreddits.add(p);
             }
         }
@@ -313,37 +288,11 @@ public abstract class Database {
         try (PreparedStatement stmt = PrepareStatement(sql);
              ResultSet rs = stmt.executeQuery()) {
             if (rs.next()) {
-                ArrayList<User> members = new ArrayList<>();
-                String sql2 = "SELECT * FROM subcreddit_members ORDER BY create_time ASC WHERE (subcreddit_id = " + subID + ")";
-                try (PreparedStatement stmt2 = PrepareStatement(sql2);
-                     ResultSet rs2 = stmt2.executeQuery()) {
-                    while(rs2.next()) {
-                        if(rs2.getInt("accepted") == 1) {
-                            members.add(GetUser(rs2.getInt("user_id")));
-                        }
-                    }
-                }
-                return new Subcreddit(subID, members, rs.getString("name"), rs.getString("description"),
+                return new Subcreddit(subID, rs.getString("name"), rs.getString("description"),
                         rs.getTimestamp("create_time"), GetUser(rs.getInt("creator_id")), new Media(MediaType.IMAGE, rs.getString("logo")),
-                        rs.getInt("private") == 1? true : false);
+                        rs.getInt("private") == 1);
             }
         }
         return null;
-    }
-
-    public static ArrayList<User> GetSubcredditBannedMembers(int subID) throws SQLException {
-        if(subID <= 0)
-            return null;
-
-        ArrayList<User> bannedMembers = new ArrayList<>();
-        String sql = "SELECT * FROM bans ORDER BY id DESC WHERE (subcreddit_id = " + subID + ")";
-
-        try (PreparedStatement stmt = PrepareStatement(sql);
-             ResultSet rs = stmt.executeQuery()) {
-            while (rs.next()) {
-                bannedMembers.add(GetUser(rs.getInt("user_id")));
-            }
-        }
-        return bannedMembers;
     }
 }
