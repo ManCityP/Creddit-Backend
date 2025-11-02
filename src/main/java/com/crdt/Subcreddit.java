@@ -54,6 +54,10 @@ public class Subcreddit {
         return subLogo;
     }
 
+    public boolean GetPrivate() {
+        return isPrivate;
+    }
+
     void AddMembers (User user){
         members.add(user);
     }

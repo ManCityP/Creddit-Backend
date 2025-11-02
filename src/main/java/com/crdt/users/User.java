@@ -4,8 +4,10 @@ import com.crdt.*;
 import de.mkammerer.argon2.*;
 
 import java.sql.PreparedStatement;
+import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
+import java.util.ArrayList;
 
 public class User implements Reportable {
     protected int id;
@@ -62,12 +64,12 @@ public class User implements Reportable {
         else
             sql = "INSERT INTO posts (username, email, password_hash, gender, bio, pfp) VALUES (?, ?, ?, ?, ?, ?)";
         try (PreparedStatement stmt = Database.PrepareStatement(sql)) {
-            stmt.setString(1, this.getUsername());
-            stmt.setString(2, this.getEmail());
-            stmt.setString(3, HashPassword(this.getPassword()));
-            stmt.setString(4, this.getGender().toString());
-            stmt.setString(5, this.getBio());
-            stmt.setString(6, this.getPfp().GetURL());
+            stmt.setString(1, this.username);
+            stmt.setString(2, this.email);
+            stmt.setString(3, HashPassword(this.password));
+            stmt.setString(4, this.gender.toString());
+            stmt.setString(5, this.bio);
+            stmt.setString(6, this.pfp.GetURL());
             if(this instanceof Admin)
                 stmt.setInt(7, 1);
             stmt.executeUpdate();
@@ -79,11 +81,11 @@ public class User implements Reportable {
     public void updateProfile() {
         String sql = "UPDATE users SET username = ?, password_hash = ?, bio = ?, pfp = ? WHERE id = ?";
         try (PreparedStatement stmt = Database.PrepareStatement(sql)) {
-            stmt.setString(1, this.getUsername());
-            stmt.setString(2, HashPassword(this.getPassword()));
-            stmt.setString(3, this.getBio());
-            stmt.setString(4, this.getPfp().GetURL());
-            stmt.setInt(5, this.getId());
+            stmt.setString(1, this.username);
+            stmt.setString(2, HashPassword(this.password));
+            stmt.setString(3, this.bio);
+            stmt.setString(4, this.pfp.GetURL());
+            stmt.setInt(5, this.id);
             stmt.executeUpdate();
         } catch (SQLException e) {
             e.printStackTrace();
@@ -94,6 +96,7 @@ public class User implements Reportable {
         //TODO wainting for Meho
     }
 
+    //TODO: Move this to Post class
     public void createPost(Post post) {
         try {
             for (String category : post.GetCategories()) {
@@ -124,11 +127,11 @@ public class User implements Reportable {
     }
 
     public void sharePost(Post post) {
-        //TODO wainting for Meho
+        //TODO wainting for Meho (Meho here, this can wait for next update)
     }
 
     public void savePost(Post post) {
-        //TODO wainting for Meho
+        //TODO wainting for Meho (Meho here, this can wait for next update)
     }
 
     public void joinSubcreddit(Subcreddit subcreddit) {
@@ -139,14 +142,15 @@ public class User implements Reportable {
         //TODO wainting for Meho
     }
 
+    //TODO: Move this to subcreddit class
     public void createSubcreddit(Subcreddit subcreddit) {
         String sql = "INSERT INTO subcreddits (name, description, creator_id, logo, private) VALUES (?, ?, ?, ?, ?)";
         try (PreparedStatement stmt = Database.PrepareStatement(sql)) {
-            stmt.setString(1, subcreddit.getName());
-            stmt.setString(2, subcreddit.getDescription());
-            stmt.setInt(3, subcreddit.getCreator().getID());
-            stmt.setInt(4, subcreddit.getLogo().getURL());
-            stmt.setInt(5, subcreddit.getPrivate()? 1 : 0);
+            stmt.setString(1, subcreddit.GetSubName());
+            stmt.setString(2, subcreddit.GetDescription());
+            stmt.setInt(3, subcreddit.GetCreator().id);
+            stmt.setString(4, subcreddit.GetLogo().GetURL());
+            stmt.setInt(5, subcreddit.GetPrivate()? 1 : 0);
             stmt.executeUpdate();
         } catch (SQLException e) {
             e.printStackTrace();
@@ -157,25 +161,11 @@ public class User implements Reportable {
         //TODO wainting for Meho
     }
 
-    public void privateMessage(Message message) {
-        String sql = "INSERT INTO messages (sender_id, receiver_id, content, media_url, media_type) VALUES (?, ?, ?, ?, ?)";
-        try (PreparedStatement stmt = Database.PrepareStatement(sql)) {
-            stmt.setInt(1, message.GetSender().getId());
-            stmt.setInt(2, message.GetReceiver().getId());
-            stmt.setString(3, message.GetText());
-            stmt.setString(4, message.GetMedia().GetURL());
-            stmt.setString(5, message.GetMedia().GetType().toString());
-            stmt.executeUpdate();
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
-    }
-
     public void sendFriendRequest(User user) {
         try {
-            int senderId = this.getId();
-            int receiverId = user.getId();
-            if (Database.GetFriends(this).contains(user) || Database.GetSentFriendRequests(this).contains(user) || Database.GetReceivedFriendRequests(this).contains(user))
+            int senderId = this.id;
+            int receiverId = user.id;
+            if (this.GetFriends().contains(user) || this.GetSentFriendRequests().contains(user) || this.GetReceivedFriendRequests().contains(user))
                 return;
 
             String sql = "INSERT INTO followers (follower_id, followed_id) VALUES (?, ?)";
@@ -190,6 +180,100 @@ public class User implements Reportable {
 
     public void unfriend(User user) {
         //TODO wainting for Meho
+    }
+
+    public ArrayList<User> GetFriends() {
+        ArrayList<User> friends = new ArrayList<>();
+        String sql = "SELECT * FROM followers WHERE accepted = 1 AND (follower_id = " + this.id + " OR followed_id = " + this.id + ") ORDER BY create_time DESC";
+        try (PreparedStatement stmt = Database.PrepareStatement(sql)) {
+            ResultSet rs = stmt.executeQuery();
+            while (rs.next()) {
+                int follower_id = rs.getInt("follower_id");
+                friends.add(Database.GetUser(follower_id == this.id? rs.getInt("followed_id") : follower_id));
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return friends;
+    }
+
+    public ArrayList<User> GetSentFriendRequests() {
+        ArrayList<User> friends = new ArrayList<>();
+        String sql = "SELECT * FROM followers WHERE accepted = 0 AND (follower_id = " + this.id + ") ORDER BY create_time DESC";
+        try (PreparedStatement stmt = Database.PrepareStatement(sql)) {
+            ResultSet rs = stmt.executeQuery();
+            while (rs.next()) {
+                friends.add(Database.GetUser(rs.getInt("followed_id")));
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return friends;
+    }
+
+    public ArrayList<User> GetReceivedFriendRequests() {
+        ArrayList<User> friends = new ArrayList<>();
+        String sql = "SELECT * FROM followers WHERE accepted = 0 AND (followed_id = " + this.id + ") ORDER BY create_time DESC";
+        try (PreparedStatement stmt = Database.PrepareStatement(sql)) {
+            ResultSet rs = stmt.executeQuery();
+            while (rs.next()) {
+                friends.add(Database.GetUser(rs.getInt("follower_id")));
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return friends;
+    }
+
+    public ArrayList<Message> GetPrivateMessageFeed(User friend, int lastMessageID) {
+        ArrayList<Message> messages = new ArrayList<>();
+        int id1 = this.id;
+        int id2 = friend.id;
+        String sql;
+        if(lastMessageID > 0)
+            sql = "SELECT * FROM messages ORDER BY id DESC WHERE (sender_id = ? AND receiver_id = ?) OR (sender_id = ? AND receiver_id = ?) AND id < ? LIMIT 20";
+        else
+            sql = "SELECT * FROM messages ORDER BY id DESC WHERE (sender_id = ? AND receiver_id = ?) OR (sender_id = ? AND receiver_id = ?) LIMIT 20";
+        try(PreparedStatement stmt = Database.PrepareStatement(sql)) {
+            stmt.setInt(1, id1); stmt.setInt(2, id2);
+            stmt.setInt(3, id2); stmt.setInt(4, id1);
+            if(lastMessageID > 0)
+                stmt.setInt(5, lastMessageID);
+            ResultSet rs = stmt.executeQuery();
+            while(rs.next()) {
+                int sender_id = rs.getInt("sender_id");
+                messages.add(new Message(rs.getInt("id"), sender_id == id1? this : friend, sender_id == id1? friend : this,
+                        rs.getString("content"), new Media(MediaType.toMediaType(rs.getString("media_type")), rs.getString("media_url")),
+                        rs.getTimestamp("create_time"), rs.getTimestamp("edit_time"), rs.getInt("read") == 0? false : true
+                ));
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return messages;
+    }
+
+    public ArrayList<Message> GetLatestPrivateMessages(User friend, int lastMessageID) {
+        ArrayList<Message> messages = new ArrayList<>();
+        int id1 = this.id;
+        int id2 = friend.id;
+        String sql = "SELECT * FROM messages ORDER BY id ASC WHERE (sender_id = ? AND receiver_id = ?) OR (sender_id = ? AND receiver_id = ?) AND id > ?";
+        try(PreparedStatement stmt = Database.PrepareStatement(sql)) {
+            stmt.setInt(1, id1); stmt.setInt(2, id2);
+            stmt.setInt(3, id2); stmt.setInt(4, id1);
+            stmt.setInt(5, lastMessageID);
+            ResultSet rs = stmt.executeQuery();
+            while(rs.next()) {
+                int sender_id = rs.getInt("sender_id");
+                messages.add(new Message(rs.getInt("id"), sender_id == id1? this : friend, sender_id == id1? friend : this,
+                        rs.getString("content"), new Media(MediaType.toMediaType(rs.getString("media_type")), rs.getString("media_url")),
+                        rs.getTimestamp("create_time"), rs.getTimestamp("edit_time"), rs.getInt("read") == 0? false : true
+                ));
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return messages;
     }
 
     public void addReport(Report report) {

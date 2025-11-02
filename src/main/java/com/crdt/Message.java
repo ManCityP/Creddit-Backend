@@ -1,6 +1,9 @@
 package com.crdt;
 
 import com.crdt.users.User;
+
+import java.sql.PreparedStatement;
+import java.sql.SQLException;
 import java.sql.Timestamp;
 
 public class Message {
@@ -37,4 +40,31 @@ public class Message {
     public Timestamp GetEdit_time() {return edit_time;}
     public boolean GetRead(){return read;}
 
+    public void send() {
+        String sql = "INSERT INTO messages (sender_id, receiver_id, content, media_url, media_type) VALUES (?, ?, ?, ?, ?)";
+        try (PreparedStatement stmt = Database.PrepareStatement(sql)) {
+            stmt.setInt(1, this.sender.getId());
+            stmt.setInt(2, this.receiver.getId());
+            stmt.setString(3, this.text);
+            stmt.setString(4, this.media.GetURL());
+            stmt.setString(5, this.media.GetType().toString());
+            stmt.executeUpdate();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
+
+    // TODO: Probably Remove editing a message's media, hard, insignificant and useless (just like you)
+    public void update() {
+        String sql = "UPDATE messages SET content = ?, media_url = ?, media_type = ? WHERE id = ?";
+        try (PreparedStatement stmt = Database.PrepareStatement(sql)) {
+            stmt.setString(1, this.text);
+            stmt.setString(2, this.media.GetURL());
+            stmt.setString(3, this.media.GetType().toString());
+            stmt.setInt(4, this.id);
+            stmt.executeUpdate();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
 }

@@ -160,7 +160,6 @@ public class Server {
         post("/friends/send", (req, res) -> {
             try {
                 Gson gson = new Gson();
-                //TODO: make this only user id not the entire object
                 JsonObject json = gson.fromJson(req.body(), JsonObject.class);
                 User sender = gson.fromJson(json.get("sender"), User.class);
                 User receiver = gson.fromJson(json.get("receiver"), User.class);
@@ -180,7 +179,7 @@ public class Server {
             try {
                 Message msg = gson.fromJson(req.body(), Message.class);
                 //TODO: This should verify the validity of the info
-                Database.InsertMessage(msg);
+                msg.send();
                 res.type("application/json");
                 return gson.toJson(Map.of("status", "ok"));
             } catch (Exception e) {
@@ -195,7 +194,7 @@ public class Server {
             try {
                 Message msg = gson.fromJson(req.body(), Message.class);
                 //TODO: This should verify the validity of the info
-                Database.EditMessage(msg);
+                msg.update();
                 res.type("application/json");
                 return gson.toJson(Map.of("status", "ok"));
             } catch (Exception e) {
@@ -222,27 +221,24 @@ public class Server {
 
         // Route: Get user's friends
         get("/friends", (req, res) -> {
-            //TODO: make this only user id not the entire object
             User user = gson.fromJson(req.body(), User.class);
-            ArrayList<User> users = Database.GetFriends(user);
+            ArrayList<User> users = user.GetFriends();
             res.type("application/json");
             return gson.toJson(users);
         });
 
         // Route: Get user's sent friend requests
         get("/friends/sent", (req, res) -> {
-            //TODO: make this only user id not the entire object
             User user = gson.fromJson(req.body(), User.class);
-            ArrayList<User> users = Database.GetSentFriendRequests(user);
+            ArrayList<User> users = user.GetSentFriendRequests();
             res.type("application/json");
             return gson.toJson(users);
         });
 
         // Route: Get user's received friend requests
         get("/friends/received", (req, res) -> {
-            //TODO: make this only user id not the entire object
             User user = gson.fromJson(req.body(), User.class);
-            ArrayList<User> users = Database.GetReceivedFriendRequests(user);
+            ArrayList<User> users = user.GetReceivedFriendRequests();
             res.type("application/json");
             return gson.toJson(users);
         });
@@ -250,12 +246,11 @@ public class Server {
         // Route: Get user's private message feed
         get("/pm/feed", (req, res) -> {
             Gson gson = new Gson();
-            //TODO: make these only user id not the entire object
             JsonObject json = gson.fromJson(req.body(), JsonObject.class);
             User user1 = gson.fromJson(json.get("user1"), User.class);
             User user2 = gson.fromJson(json.get("user2"), User.class);
             int lastMessageID = gson.fromJson(json.get("lastID"), int.class);
-            ArrayList<Message> messages = Database.GetPrivateMessageFeed(user1, user2, lastMessageID);
+            ArrayList<Message> messages = user1.GetPrivateMessageFeed(user2, lastMessageID);
             res.type("application/json");
             return gson.toJson(messages);
         });
@@ -263,12 +258,11 @@ public class Server {
         // Route: Get user's private message feed
         get("/pm/update", (req, res) -> {
             Gson gson = new Gson();
-            //TODO: make these only user id not the entire object
             JsonObject json = gson.fromJson(req.body(), JsonObject.class);
             User user1 = gson.fromJson(json.get("user1"), User.class);
             User user2 = gson.fromJson(json.get("user2"), User.class);
             int lastMessageID = gson.fromJson(json.get("lastID"), int.class);
-            ArrayList<Message> messages = Database.GetLatestPrivateMessages(user1, user2, lastMessageID);
+            ArrayList<Message> messages = user1.GetLatestPrivateMessages(user2, lastMessageID);
             res.type("application/json");
             return gson.toJson(messages);
         });
@@ -316,7 +310,7 @@ public class Server {
             try {
                 Subcreddit subcreddit = gson.fromJson(req.body(), Subcreddit.class);
                 //TODO: This should verify the validity of the info
-                subcreddit.getCreator().createSubcreddit(subcreddit);
+                subcreddit.GetCreator().createSubcreddit(subcreddit);
                 res.type("application/json");
                 return gson.toJson(Map.of("status", "ok"));
             } catch (Exception e) {

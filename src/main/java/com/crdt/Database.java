@@ -115,7 +115,8 @@ public abstract class Database {
         return null;
     }
 
-    public static ArrayList<String> GetPostCategories(int postID) throws SQLException {
+    //TODO: Move this to Post class
+    private static ArrayList<String> GetPostCategories(int postID) throws SQLException {
         ArrayList<String> categories = new ArrayList<>();
         String sql = "SELECT * FROM post_categories WHERE (post_id = " + postID + ")";
         try (PreparedStatement stmt = PrepareStatement(sql);
@@ -203,114 +204,6 @@ public abstract class Database {
             }
         }
         return null;
-    }
-
-    public static ArrayList<User> GetFriends(User user) throws SQLException {
-        ArrayList<User> friends = new ArrayList<>();
-        int id = user.getId();
-        String sql = "SELECT * FROM followers WHERE accepted = 1 AND (follower_id = " + id + " OR followed_id = " + id + ") ORDER BY create_time DESC";
-        try (PreparedStatement stmt = PrepareStatement(sql)) {
-            ResultSet rs = stmt.executeQuery();
-            while (rs.next()) {
-                int follower_id = rs.getInt("follower_id");
-                friends.add(GetUser(follower_id == id? rs.getInt("followed_id") : follower_id));
-            }
-        }
-        return friends;
-    }
-
-    public static ArrayList<User> GetSentFriendRequests(User user) throws SQLException {
-        ArrayList<User> friends = new ArrayList<>();
-        String sql = "SELECT * FROM followers WHERE accepted = 0 AND (follower_id = " + user.getId() + ") ORDER BY create_time DESC";
-        try (PreparedStatement stmt = PrepareStatement(sql)) {
-            ResultSet rs = stmt.executeQuery();
-            while (rs.next()) {
-                friends.add(GetUser(rs.getInt("followed_id")));
-            }
-        }
-        return friends;
-    }
-
-    public static ArrayList<User> GetReceivedFriendRequests(User user) throws SQLException {
-        ArrayList<User> friends = new ArrayList<>();
-        String sql = "SELECT * FROM followers WHERE accepted = 0 AND (followed_id = " + user.getId() + ") ORDER BY create_time DESC";
-        try (PreparedStatement stmt = PrepareStatement(sql)) {
-            ResultSet rs = stmt.executeQuery();
-            while (rs.next()) {
-                friends.add(GetUser(rs.getInt("follower_id")));
-            }
-        }
-        return friends;
-    }
-
-    public static void InsertMessage(Message msg) throws SQLException {
-        String sql = "INSERT INTO messages (sender_id, receiver_id, content, media_url, media_type) VALUES (?, ?, ?, ?, ?)";
-        try (PreparedStatement stmt = PrepareStatement(sql)) {
-            stmt.setInt(1, msg.GetSender().getId());
-            stmt.setInt(2, msg.GetReceiver().getId());
-            stmt.setString(3, msg.GetText());
-            stmt.setString(4, msg.GetMedia().GetURL());
-            stmt.setString(5, msg.GetMedia().GetType().toString());
-            stmt.executeUpdate();
-        }
-    }
-
-    public static void EditMessage(Message msg) throws SQLException {
-        String sql = "UPDATE messages SET content = ?, media_url = ?, media_type = ? WHERE id = ?";
-        try (PreparedStatement stmt = PrepareStatement(sql)) {
-            stmt.setString(1, msg.GetText());
-            stmt.setString(2, msg.GetMedia().GetURL());
-            stmt.setString(3, msg.GetMedia().GetType().toString());
-            stmt.setInt(4, msg.GetID());
-            stmt.executeUpdate();
-        }
-    }
-
-    public static ArrayList<Message> GetPrivateMessageFeed(User u1, User u2, int lastMessageID) throws SQLException {
-        ArrayList<Message> messages = new ArrayList<>();
-        int id1 = u1.getId();
-        int id2 = u2.getId();
-        String sql;
-        if(lastMessageID > 0)
-            sql = "SELECT * FROM messages ORDER BY id DESC WHERE (sender_id = ? AND receiver_id = ?) OR (sender_id = ? AND receiver_id = ?) AND id < ? LIMIT 20";
-        else
-            sql = "SELECT * FROM messages ORDER BY id DESC WHERE (sender_id = ? AND receiver_id = ?) OR (sender_id = ? AND receiver_id = ?) LIMIT 20";
-        try(PreparedStatement stmt = PrepareStatement(sql)) {
-            stmt.setInt(1, id1); stmt.setInt(2, id2);
-            stmt.setInt(3, id2); stmt.setInt(4, id1);
-            if(lastMessageID > 0)
-                stmt.setInt(5, lastMessageID);
-            ResultSet rs = stmt.executeQuery();
-            while(rs.next()) {
-                int sender_id = rs.getInt("sender_id");
-                messages.add(new Message(rs.getInt("id"), sender_id == id1? u1 : u2, sender_id == id1? u2 : u1,
-                        rs.getString("content"), new Media(MediaType.toMediaType(rs.getString("media_type")), rs.getString("media_url")),
-                        rs.getTimestamp("create_time"), rs.getTimestamp("edit_time"), rs.getInt("read") == 0? false : true
-                ));
-            }
-        }
-        return messages;
-    }
-
-    public static ArrayList<Message> GetLatestPrivateMessages(User u1, User u2, int lastMessageID) throws SQLException {
-        ArrayList<Message> messages = new ArrayList<>();
-        int id1 = u1.getId();
-        int id2 = u2.getId();
-        String sql = "SELECT * FROM messages ORDER BY id ASC WHERE (sender_id = ? AND receiver_id = ?) OR (sender_id = ? AND receiver_id = ?) AND id > ?";
-        try(PreparedStatement stmt = PrepareStatement(sql)) {
-            stmt.setInt(1, id1); stmt.setInt(2, id2);
-            stmt.setInt(3, id2); stmt.setInt(4, id1);
-            stmt.setInt(5, lastMessageID);
-            ResultSet rs = stmt.executeQuery();
-            while(rs.next()) {
-                int sender_id = rs.getInt("sender_id");
-                messages.add(new Message(rs.getInt("id"), sender_id == id1? u1 : u2, sender_id == id1? u2 : u1,
-                        rs.getString("content"), new Media(MediaType.toMediaType(rs.getString("media_type")), rs.getString("media_url")),
-                        rs.getTimestamp("create_time"), rs.getTimestamp("edit_time"), rs.getInt("read") == 0? false : true
-                ));
-            }
-        }
-        return messages;
     }
 
 
