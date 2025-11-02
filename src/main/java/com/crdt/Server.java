@@ -631,5 +631,10 @@ public class Server {
         });
 
         System.out.println("Server running on port 7878...");
+        Scanner scanner = new Scanner(System.in);
+        while(true) {
+            if(scanner.nextLine().equalsIgnoreCase("quit"))
+                System.exit(0);
+        }
     }
 }
