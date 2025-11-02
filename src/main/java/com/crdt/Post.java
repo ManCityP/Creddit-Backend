@@ -15,7 +15,6 @@ public class Post
     private TimeStamp timeCreated;
     private TimeStamp timeEdited;
     private int votes;
-    private ArrayList<Comment> comments;
 
     public Post(int id, User author, Subcreddit subcreddit, String title, String content, ArrayList<Media> media, ArrayList <String> categories, TimeStamp timeCreated, TimeStamp timeEdited, int votes)
     {
@@ -56,7 +55,6 @@ public class Post
         this.timeCreated = timeCreated;
         this.timeEdited = timeEdited;
         this.votes = votes;
-        this.comments = new ArrayList<>();
     }
 
     public int GetID() 
