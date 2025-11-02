@@ -160,6 +160,7 @@ public class Server {
         post("/friends/send", (req, res) -> {
             try {
                 Gson gson = new Gson();
+                //TODO: make this only user id not the entire object
                 JsonObject json = gson.fromJson(req.body(), JsonObject.class);
                 User sender = gson.fromJson(json.get("sender"), User.class);
                 User receiver = gson.fromJson(json.get("receiver"), User.class);
@@ -221,6 +222,7 @@ public class Server {
 
         // Route: Get user's friends
         get("/friends", (req, res) -> {
+            //TODO: make this only user id not the entire object
             User user = gson.fromJson(req.body(), User.class);
             ArrayList<User> users = Database.GetFriends(user);
             res.type("application/json");
@@ -229,6 +231,7 @@ public class Server {
 
         // Route: Get user's sent friend requests
         get("/friends/sent", (req, res) -> {
+            //TODO: make this only user id not the entire object
             User user = gson.fromJson(req.body(), User.class);
             ArrayList<User> users = Database.GetSentFriendRequests(user);
             res.type("application/json");
@@ -237,6 +240,7 @@ public class Server {
 
         // Route: Get user's received friend requests
         get("/friends/received", (req, res) -> {
+            //TODO: make this only user id not the entire object
             User user = gson.fromJson(req.body(), User.class);
             ArrayList<User> users = Database.GetReceivedFriendRequests(user);
             res.type("application/json");
@@ -246,6 +250,7 @@ public class Server {
         // Route: Get user's private message feed
         get("/pm/feed", (req, res) -> {
             Gson gson = new Gson();
+            //TODO: make these only user id not the entire object
             JsonObject json = gson.fromJson(req.body(), JsonObject.class);
             User user1 = gson.fromJson(json.get("user1"), User.class);
             User user2 = gson.fromJson(json.get("user2"), User.class);
@@ -258,6 +263,7 @@ public class Server {
         // Route: Get user's private message feed
         get("/pm/update", (req, res) -> {
             Gson gson = new Gson();
+            //TODO: make these only user id not the entire object
             JsonObject json = gson.fromJson(req.body(), JsonObject.class);
             User user1 = gson.fromJson(json.get("user1"), User.class);
             User user2 = gson.fromJson(json.get("user2"), User.class);
