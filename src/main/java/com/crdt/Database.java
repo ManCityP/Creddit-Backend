@@ -10,7 +10,6 @@ import java.util.*;
 
 public abstract class Database {
     private static Connection conn;
-    private static final Argon2Advanced ARGON2 = Argon2Factory.createAdvanced(Argon2Factory.Argon2Types.ARGON2id);
 
     public static void Connect(String url, String user, String pass) throws SQLException {
         conn = DriverManager.getConnection(url, user, pass);
@@ -29,48 +28,10 @@ public abstract class Database {
 
     public static PreparedStatement PrepareStatement(String sql) throws SQLException {  return conn.prepareStatement(sql);  }
 
-    private static String HashPassword(String password) {
-        int iterations = 3;
-        int memory = 1 << 15;
-        int parallelism = 2;
-        byte[] salt = new byte[16];
-        new java.security.SecureRandom().nextBytes(salt);
-        byte[] hash = ARGON2.rawHash(iterations, memory, parallelism, password.toCharArray(), salt);
-
-        String str_salt = java.util.Base64.getEncoder().encodeToString(salt);
-        String str_hash = java.util.Base64.getEncoder().encodeToString(hash);
-
-        return str_salt + ":" + str_hash;
-    }
-
-
 
     // TODO: MOVE A LOT OF THESE FUNCTIONS TO THEIR RESPECTIVE CLASSES!!!
 
     // BOOKMARK: Posts
-    public static void InsertPost(Post p) throws SQLException {
-        for(String category : p.getCategories()) {
-            int categoryID = CategoryExists(category);
-            if(categoryID == 0)
-                categoryID = InsertCategory(category.toLowerCase());
-            String sql = "INSERT INTO post_categories (post_id, category_id) VALUES (?, ?)";
-            try(PreparedStatement stmt = PrepareStatement(sql)) {
-                stmt.setInt(1, p.GetID());
-                stmt.setInt(2, categoryID);
-                stmt.executeUpdate();
-            }
-        }
-
-        String sql = "INSERT INTO posts (author_id, subcreddit_id, title, content) VALUES (?, ?, ?, ?)";
-        try (PreparedStatement stmt = PrepareStatement(sql)) {
-            stmt.setInt(1, p.GetAuthor().GetID());
-            stmt.setInt(2, p.GetSubcreddit().GetID());
-            stmt.setString(3, p.GetTitle());
-            stmt.setString(4, p.GetContent());
-            stmt.executeUpdate();
-        }
-    }
-
     public static int InsertCategory(String category) throws SQLException {
         String sql = "INSERT INTO categories (name) VALUES (?)";
         try (PreparedStatement stmt = PrepareStatement(sql)) {
@@ -207,51 +168,6 @@ public abstract class Database {
 
 
     // BOOKMARK: Users
-    public static void InsertUser(User user) throws SQLException {
-        String sql;
-        if(user instanceof Admin)
-            sql = "INSERT INTO posts (username, email, password_hash, gender, bio, pfp, admin) VALUES (?, ?, ?, ?, ?, ?, ?)";
-        else
-            sql = "INSERT INTO posts (username, email, password_hash, gender, bio, pfp) VALUES (?, ?, ?, ?, ?, ?)";
-        try (PreparedStatement stmt = PrepareStatement(sql)) {
-            stmt.setString(1, user.getUsername());
-            stmt.setString(2, user.getEmail());
-            stmt.setString(3, HashPassword(user.getPassword()));
-            stmt.setString(4, user.getGender().toString());
-            stmt.setString(5, user.getBio());
-            stmt.setString(6, user.getPfp().GetURL());
-            if(user instanceof Admin)
-                stmt.setInt(7, 1);
-            stmt.executeUpdate();
-        }
-    }
-
-    public static void UpdateUser(User user) throws SQLException {
-        String sql = "UPDATE users SET username = ?, password_hash = ?, bio = ?, pfp = ? WHERE id = ?";
-        try (PreparedStatement stmt = PrepareStatement(sql)) {
-            stmt.setString(1, user.getUsername());
-            stmt.setString(2, HashPassword(user.getPassword()));
-            stmt.setString(3, user.getBio());
-            stmt.setString(4, user.getPfp().GetURL());
-            stmt.setInt(5, user.getId());
-            stmt.executeUpdate();
-        }
-    }
-
-    public static void SendFriendRequest(User sender, User receiver) throws SQLException {
-        int senderId = sender.getId();
-        int receiverId = receiver.getId();
-        if(GetFriends(sender).contains(receiver) || GetSentFriendRequests(sender).contains(receiver) || GetReceivedFriendRequests(sender).contains(receiver))
-            return;
-
-        String sql = "INSERT INTO followers (follower_id, followed_id) VALUES (?, ?)";
-        try (PreparedStatement stmt = PrepareStatement(sql)) {
-            stmt.setInt(1, senderId);
-            stmt.setInt(2, receiverId);
-            stmt.executeUpdate();
-        }
-    }
-
     public static ArrayList<User> GetAllUsers() throws SQLException {
         ArrayList<User> users = new ArrayList<>();
         String sql = "SELECT * FROM users ORDER BY id DESC";
@@ -439,6 +355,7 @@ public abstract class Database {
         }
         return comments;
     }
+
     public static Comment GetComment(int commentid) throws SQLException {
         if(commentid <= 0)
             return null;
@@ -467,18 +384,6 @@ public abstract class Database {
 
 
     // BOOKMARK: Subcreddits
-    public static void InsertSubcreddit(Subcreddit sub) throws SQLException {
-        String sql = "INSERT INTO subcreddits (name, description, creator_id, logo, private) VALUES (?, ?, ?, ?, ?)";
-        try (PreparedStatement stmt = PrepareStatement(sql)) {
-            stmt.setString(1, sub.getName());
-            stmt.setString(2, sub.getDescription());
-            stmt.setInt(3, sub.getCreator().getID());
-            stmt.setInt(4, sub.getLogo().getURL());
-            stmt.setInt(5, sub.getPrivate()? 1 : 0);
-            stmt.executeUpdate();
-        }
-    }
-
     public static ArrayList<Subcreddit> GetAllSubcreddits() throws SQLException {
         ArrayList<Subcreddit> subcreddits = new ArrayList<>();
         String sql = "SELECT * FROM subcreddits ORDER BY id DESC";

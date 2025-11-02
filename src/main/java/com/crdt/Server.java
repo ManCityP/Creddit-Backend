@@ -92,7 +92,7 @@ public class Server {
         post("/post", (req, res) -> {
             try {
                 Post post = gson.fromJson(req.body(), Post.class);
-                Database.InsertPost(post);
+                post.GetAuthor().createPost(post);
                 res.type("application/json");
                 return gson.toJson(Map.of("status", "ok"));
             } catch (Exception e) {
@@ -131,7 +131,7 @@ public class Server {
             try {
                 User user = gson.fromJson(req.body(), User.class);
                 //TODO: This should verify the validity of the info
-                Database.InsertUser(user);
+                user.createUser();
                 res.type("application/json");
                 return gson.toJson(Map.of("status", "ok"));
             } catch (Exception e) {
@@ -146,7 +146,7 @@ public class Server {
             try {
                 User user = gson.fromJson(req.body(), User.class);
                 //TODO: This should verify the validity of the info
-                Database.UpdateUser(user);
+                user.updateProfile();
                 res.type("application/json");
                 return gson.toJson(Map.of("status", "ok"));
             } catch (Exception e) {
@@ -164,7 +164,7 @@ public class Server {
                 User sender = gson.fromJson(json.get("sender"), User.class);
                 User receiver = gson.fromJson(json.get("receiver"), User.class);
 
-                Database.SendFriendRequest(sender, receiver);
+                sender.sendFriendRequest(receiver);
                 res.type("application/json");
                 return gson.toJson(Map.of("status", "ok"));
             } catch (Exception e) {
@@ -310,7 +310,7 @@ public class Server {
             try {
                 Subcreddit subcreddit = gson.fromJson(req.body(), Subcreddit.class);
                 //TODO: This should verify the validity of the info
-                Database.InsertSubcreddit(subcreddit);
+                subcreddit.getCreator().createSubcreddit(subcreddit);
                 res.type("application/json");
                 return gson.toJson(Map.of("status", "ok"));
             } catch (Exception e) {
