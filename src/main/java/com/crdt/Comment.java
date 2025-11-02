@@ -32,7 +32,7 @@ public class Comment {
     public void create() {
         String sql = "INSERT INTO comments (post_id, author_id, parent_id, content, media_url, media_type) VALUES (?, ?, ?, ?, ?, ?)";
         try (PreparedStatement stmt = Database.PrepareStatement(sql)) {
-            stmt.setInt(1, this.post.getID());
+            stmt.setInt(1, this.post.GetID());
             stmt.setInt(2, this.author.getId());
             stmt.setInt(3, this.parent.getID());
             stmt.setString(4, this.content);

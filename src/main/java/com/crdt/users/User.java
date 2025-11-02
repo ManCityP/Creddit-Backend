@@ -107,36 +107,15 @@ public class User implements Reportable {
         }
     }
 
-    //TODO: Move this to Post class
-    public void createPost(Post post) {
-        if(!this.active)
+    public void activate() {
+        if(this.active)
             return;
-        try {
-            for (String category : post.GetCategories()) {
-                int categoryID = Database.CategoryExists(category);
-                if (categoryID == 0)
-                    categoryID = Database.InsertCategory(category.toLowerCase());
-                String sql = "INSERT INTO post_categories (post_id, category_id) VALUES (?, ?)";
-                PreparedStatement stmt = Database.PrepareStatement(sql);
-                stmt.setInt(1, post.GetID());
-                stmt.setInt(2, categoryID);
-                stmt.executeUpdate();
-            }
-
-            String sql = "INSERT INTO posts (author_id, subcreddit_id, title, content) VALUES (?, ?, ?, ?)";
-            PreparedStatement stmt = Database.PrepareStatement(sql);
-            stmt.setInt(1, post.GetAuthor().GetID());
-            stmt.setInt(2, post.GetSubcreddit().GetID());
-            stmt.setString(3, post.GetTitle());
-            stmt.setString(4, post.GetContent());
+        String sql = "UPDATE users SET active = 1 WHERE id = " + this.id;
+        try (PreparedStatement stmt = Database.PrepareStatement(sql)) {
             stmt.executeUpdate();
         } catch (SQLException e) {
             e.printStackTrace();
         }
-    }
-
-    public void deletePost(Post post) {
-        //TODO wainting for Meho (Meho here, this will move to the Post class, also "wainting" ;) )
     }
 
     public void sharePost(Post post) {
@@ -148,7 +127,8 @@ public class User implements Reportable {
     }
 
     public void joinSubcreddit(Subcreddit subcreddit) {
-        if(!this.active)
+        //TODO: Check if you are banned from the subcreddit
+        if(!this.active || subcreddit == null || subcreddit.GetSubId() <= 0)
             return;
         String sql = "INSERT INTO subcreddit_members (user_id, subcreddit_id, accepted) VALUES (?, ?, ?)";
         try (PreparedStatement stmt = Database.PrepareStatement(sql)) {
@@ -162,7 +142,7 @@ public class User implements Reportable {
     }
 
     public void leaveSubcreddit(Subcreddit subcreddit) {
-        if(!this.active)
+        if(!this.active || subcreddit == null || subcreddit.GetSubId() <= 0)
             return;
         String sql = "DELETE FROM subcreddit_members WHERE (user_id = ? AND subcreddit_id = ?)";
         try (PreparedStatement stmt = Database.PrepareStatement(sql)) {
@@ -172,27 +152,6 @@ public class User implements Reportable {
         } catch (SQLException e) {
             e.printStackTrace();
         }
-    }
-
-    //TODO: Move this to subcreddit class
-    public void createSubcreddit(Subcreddit subcreddit) {
-        if(!this.active)
-            return;
-        String sql = "INSERT INTO subcreddits (name, description, creator_id, logo, private) VALUES (?, ?, ?, ?, ?)";
-        try (PreparedStatement stmt = Database.PrepareStatement(sql)) {
-            stmt.setString(1, subcreddit.GetSubName());
-            stmt.setString(2, subcreddit.GetDescription());
-            stmt.setInt(3, subcreddit.GetCreator().id);
-            stmt.setString(4, subcreddit.GetLogo().GetURL());
-            stmt.setInt(5, subcreddit.GetPrivate()? 1 : 0);
-            stmt.executeUpdate();
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
-    }
-
-    public void deleteSubcreddit(Subcreddit subcreddit) {
-        //TODO wainting for Meho (Meho here, this will move to the subcreddit class, also "wainting" ;) )
     }
 
     public ArrayList<Subcreddit> GetSubcreddits() {

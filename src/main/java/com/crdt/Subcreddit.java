@@ -26,6 +26,31 @@ public class Subcreddit {
         this.creator = creator;
         this.subLogo = logo;
     }
+
+    public void create() {
+        String sql = "INSERT INTO subcreddits (name, description, creator_id, logo, private) VALUES (?, ?, ?, ?, ?)";
+        try (PreparedStatement stmt = Database.PrepareStatement(sql)) {
+            stmt.setString(1, this.name);
+            stmt.setString(2, this.description);
+            stmt.setInt(3, this.creator.getId());
+            stmt.setString(4, this.subLogo.GetURL());
+            stmt.setInt(5, this.isPrivate? 1 : 0);
+            stmt.executeUpdate();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public void delete() {
+        String sql = "DELETE FROM subcreddits WHERE id = ?";
+        try (PreparedStatement stmt = Database.PrepareStatement(sql)) {
+            stmt.setInt(1, this.id);
+            stmt.executeUpdate();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
+
     public ArrayList<User> GetMembers() {
         ArrayList<User> members = new ArrayList<>();
         String sql = "SELECT * FROM subcreddit_members ORDER BY id DESC WHERE (accepted = 1 AND subcreddit_id = " + this.id + ")";

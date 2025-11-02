@@ -57,7 +57,7 @@ public abstract class Database {
                 String sql2 = "SELECT * FROM post_media ORDER BY id ASC WHERE (post_id = " + postid + ")";
                 try (PreparedStatement stmt2 = PrepareStatement(sql2);
                      ResultSet rs2 = stmt2.executeQuery()) {
-                    while (rs.next()) {
+                    while (rs2.next()) {
                         media.add(new Media(MediaType.toMediaType(rs.getString("media_type")), rs.getString("media_url")));
                     }
                 }
@@ -71,7 +71,7 @@ public abstract class Database {
                     }
                 }
 
-                Post p = new Post(postid, rs.getInt("author_id"), GetSubcreddit(rs.getInt("subcreddit_id")),
+                Post p = new Post(postid, GetUser(rs.getInt("author_id")), GetSubcreddit(rs.getInt("subcreddit_id")),
                         rs.getString("title"), rs.getString("content"), media, GetPostCategories(postid),
                         rs.getTimestamp("create_time"), rs.getTimestamp("edit_time"), votes);
                 posts.add(p);
@@ -93,7 +93,7 @@ public abstract class Database {
                 String sql2 = "SELECT * FROM post_media ORDER BY id ASC WHERE (post_id = " + postid + ")";
                 try (PreparedStatement stmt2 = PrepareStatement(sql2);
                      ResultSet rs2 = stmt2.executeQuery()) {
-                    while (rs.next()) {
+                    while (rs2.next()) {
                         media.add(new Media(MediaType.toMediaType(rs.getString("media_type")), rs.getString("media_url")));
                     }
                 }
@@ -107,7 +107,7 @@ public abstract class Database {
                     }
                 }
 
-                return new Post(postid, rs.getInt("author_id"), GetSubcreddit(rs.getInt("subcreddit_id")),
+                return new Post(postid, GetUser(rs.getInt("author_id")), GetSubcreddit(rs.getInt("subcreddit_id")),
                         rs.getString("title"), rs.getString("content"), media, GetPostCategories(postid),
                         rs.getTimestamp("create_time"), rs.getTimestamp("edit_time"), votes);
             }
@@ -177,7 +177,7 @@ public abstract class Database {
                 if(rs.getInt("admin") == 1)
                     users.add(new Admin(rs.getInt("id"), rs.getString("username"), rs.getString("email"), rs.getString("password_hash"),
                             Gender.toGender(rs.getString("gender")), rs.getString("bio"), new Media(MediaType.IMAGE, rs.getString("pfp")),
-                            rs.getTimestamp("create_time")));
+                            rs.getTimestamp("create_time"), rs.getInt("active") != 0));
                 else
                     users.add(new User(rs.getInt("id"), rs.getString("username"), rs.getString("email"), rs.getString("password_hash"),
                             Gender.toGender(rs.getString("gender")), rs.getString("bio"), new Media(MediaType.IMAGE, rs.getString("pfp")),
@@ -195,7 +195,7 @@ public abstract class Database {
                 if(rs.getInt("admin") == 1)
                     return new Admin(rs.getInt("id"), rs.getString("username"), rs.getString("email"), rs.getString("password_hash"),
                             Gender.toGender(rs.getString("gender")), rs.getString("bio"), new Media(MediaType.IMAGE, rs.getString("pfp")),
-                            rs.getTimestamp("create_time"));
+                            rs.getTimestamp("create_time"), rs.getInt("active") != 0);
 
                 return new User(rs.getInt("id"), rs.getString("username"), rs.getString("email"), rs.getString("password_hash"),
                         Gender.toGender(rs.getString("gender")), rs.getString("bio"), new Media(MediaType.IMAGE, rs.getString("pfp")),

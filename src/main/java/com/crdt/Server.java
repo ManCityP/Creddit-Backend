@@ -2,6 +2,8 @@ package com.crdt;
 
 import static spark.Spark.*;
 
+import com.crdt.users.Admin;
+import com.crdt.users.Moderator;
 import com.crdt.users.User;
 import com.google.gson.*;
 
@@ -89,10 +91,24 @@ public class Server {
 
         // BOOKMARK: POST
         // Route: Create new post
-        post("/post", (req, res) -> {
+        post("/post/create", (req, res) -> {
             try {
                 Post post = gson.fromJson(req.body(), Post.class);
-                post.GetAuthor().createPost(post);
+                post.create();
+                res.type("application/json");
+                return gson.toJson(Map.of("status", "ok"));
+            } catch (Exception e) {
+                e.printStackTrace(); // server log
+                res.status(500);
+                return gson.toJson(Map.of("status", "error", "message", e.getMessage()));
+            }
+        });
+
+        // Route: Delete post
+        post("/post/delete", (req, res) -> {
+            try {
+                Post post = gson.fromJson(req.body(), Post.class);
+                post.delete();
                 res.type("application/json");
                 return gson.toJson(Map.of("status", "ok"));
             } catch (Exception e) {
@@ -127,10 +143,9 @@ public class Server {
 
         // BOOKMARK: USER
         // Route: Create new user
-        post("/user", (req, res) -> {
+        post("/user/create", (req, res) -> {
             try {
                 User user = gson.fromJson(req.body(), User.class);
-                //TODO: This should verify the validity of the info
                 user.create();
                 res.type("application/json");
                 return gson.toJson(Map.of("status", "ok"));
@@ -142,11 +157,61 @@ public class Server {
         });
 
         // Route: Update user info
-        post("/update/user", (req, res) -> {
+        post("/user/update", (req, res) -> {
             try {
                 User user = gson.fromJson(req.body(), User.class);
-                //TODO: This should verify the validity of the info
                 user.update();
+                res.type("application/json");
+                return gson.toJson(Map.of("status", "ok"));
+            } catch (Exception e) {
+                e.printStackTrace(); // server log
+                res.status(500);
+                return gson.toJson(Map.of("status", "error", "message", e.getMessage()));
+            }
+        });
+
+        // Route: Update user info
+        post("/user/delete", (req, res) -> {
+            try {
+                User user = gson.fromJson(req.body(), User.class);
+                user.delete();
+                res.type("application/json");
+                return gson.toJson(Map.of("status", "ok"));
+            } catch (Exception e) {
+                e.printStackTrace(); // server log
+                res.status(500);
+                return gson.toJson(Map.of("status", "error", "message", e.getMessage()));
+            }
+        });
+
+        //Route: Ban a user globally
+        post("/user/ban", (req, res) -> {
+            try {
+                Gson gson = new Gson();
+                JsonObject json = gson.fromJson(req.body(), JsonObject.class);
+                Admin admin = gson.fromJson(json.get("admin"), Admin.class);
+                User user = gson.fromJson(json.get("user"), User.class);
+                String reason = gson.fromJson(json.get("reason"), String.class);
+
+                admin.BanUser(user, reason);
+                res.type("application/json");
+                return gson.toJson(Map.of("status", "ok"));
+            } catch (Exception e) {
+                e.printStackTrace(); // server log
+                res.status(500);
+                return gson.toJson(Map.of("status", "error", "message", e.getMessage()));
+            }
+        });
+
+        //Route: Unban a user globally
+        post("/user/unban", (req, res) -> {
+            try {
+                Gson gson = new Gson();
+                JsonObject json = gson.fromJson(req.body(), JsonObject.class);
+                Admin admin = gson.fromJson(json.get("admin"), Admin.class);
+                User user = gson.fromJson(json.get("user"), User.class);
+
+                admin.UnbanUser(user);
                 res.type("application/json");
                 return gson.toJson(Map.of("status", "ok"));
             } catch (Exception e) {
@@ -196,7 +261,6 @@ public class Server {
         post("/pm/send", (req, res) -> {
             try {
                 Message msg = gson.fromJson(req.body(), Message.class);
-                //TODO: This should verify the validity of the info
                 msg.send();
                 res.type("application/json");
                 return gson.toJson(Map.of("status", "ok"));
@@ -211,7 +275,6 @@ public class Server {
         post("/pm/edit", (req, res) -> {
             try {
                 Message msg = gson.fromJson(req.body(), Message.class);
-                //TODO: This should verify the validity of the info
                 msg.update();
                 res.type("application/json");
                 return gson.toJson(Map.of("status", "ok"));
@@ -298,10 +361,9 @@ public class Server {
 
         // BOOKMARK: COMMENT
         //Route: Create new comment
-        post("/comment", (req, res) -> {
+        post("/comment/create", (req, res) -> {
             try {
                 Comment comment = gson.fromJson(req.body(), Comment.class);
-                //TODO: This should verify the validity of the info
                 comment.create();
                 res.type("application/json");
                 return gson.toJson(Map.of("status", "ok"));
@@ -332,11 +394,24 @@ public class Server {
 
         // BOOKMARK: Subcreddit
         //Route: Create new subcreddit
-        post("/subcreddit", (req, res) -> {
+        post("/subcreddit/create", (req, res) -> {
             try {
                 Subcreddit subcreddit = gson.fromJson(req.body(), Subcreddit.class);
-                //TODO: This should verify the validity of the info
-                subcreddit.GetCreator().createSubcreddit(subcreddit);
+                subcreddit.create();
+                res.type("application/json");
+                return gson.toJson(Map.of("status", "ok"));
+            } catch (Exception e) {
+                e.printStackTrace(); // server log
+                res.status(500);
+                return gson.toJson(Map.of("status", "error", "message", e.getMessage()));
+            }
+        });
+
+        //Route: Delete subcreddit
+        post("/subcreddit/delete", (req, res) -> {
+            try {
+                Subcreddit subcreddit = gson.fromJson(req.body(), Subcreddit.class);
+                subcreddit.delete();
                 res.type("application/json");
                 return gson.toJson(Map.of("status", "ok"));
             } catch (Exception e) {
@@ -382,6 +457,45 @@ public class Server {
             }
         });
 
+        //Route: Ban a subcreddit member
+        post("/subcreddit/ban", (req, res) -> {
+            try {
+                Gson gson = new Gson();
+                JsonObject json = gson.fromJson(req.body(), JsonObject.class);
+                Moderator moderator = gson.fromJson(json.get("moderator"), Moderator.class);
+                User user = gson.fromJson(json.get("user"), User.class);
+                Subcreddit sub = gson.fromJson(json.get("subcreddit"), Subcreddit.class);
+                String reason = gson.fromJson(json.get("reason"), String.class);
+
+                moderator.BanMember(user, sub, reason);
+                res.type("application/json");
+                return gson.toJson(Map.of("status", "ok"));
+            } catch (Exception e) {
+                e.printStackTrace(); // server log
+                res.status(500);
+                return gson.toJson(Map.of("status", "error", "message", e.getMessage()));
+            }
+        });
+
+        //Route: Unban a subcreddit member
+        post("/subcreddit/unban", (req, res) -> {
+            try {
+                Gson gson = new Gson();
+                JsonObject json = gson.fromJson(req.body(), JsonObject.class);
+                Moderator moderator = gson.fromJson(json.get("moderator"), Moderator.class);
+                User user = gson.fromJson(json.get("user"), User.class);
+                Subcreddit sub = gson.fromJson(json.get("subcreddit"), Subcreddit.class);
+
+                moderator.UnbanMember(user, sub);
+                res.type("application/json");
+                return gson.toJson(Map.of("status", "ok"));
+            } catch (Exception e) {
+                e.printStackTrace(); // server log
+                res.status(500);
+                return gson.toJson(Map.of("status", "error", "message", e.getMessage()));
+            }
+        });
+
         // Route: Get a specific subcreddit
         get("/subcreddit", (req, res) -> {
             int id = Integer.parseInt(req.queryParams("id"));
@@ -405,7 +519,20 @@ public class Server {
             return gson.toJson(bannedMembers);
         });
 
+        // Route: Get subcreddit bans
+        get("/subcreddit/verifymod", (req, res) -> {
+            Gson gson = new Gson();
+            JsonObject json = gson.fromJson(req.body(), JsonObject.class);
+            Moderator moderator = gson.fromJson(json.get("moderator"), Moderator.class);
+            Subcreddit sub = gson.fromJson(json.get("subcreddit"), Subcreddit.class);
+            res.type("application/json");
+            return gson.toJson(moderator.VerifyModeration(sub));
+        });
 
+
+
+
+        // BOOKMARK: File Uploading
 
         // Route: File upload
         final String finalTunnelURL = tunnelURL;
