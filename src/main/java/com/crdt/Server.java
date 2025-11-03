@@ -179,10 +179,10 @@ public class Server {
 
         // BOOKMARK: USER
         // Route: Create new user
-        post("/user/create", (req, res) -> {
+        post("/user/register", (req, res) -> {
             try {
                 User user = gson.fromJson(req.body(), User.class);
-                user.create();
+                user.register();
                 res.type("application/json");
                 return gson.toJson(Map.of("status", "ok"));
             } catch (Exception e) {

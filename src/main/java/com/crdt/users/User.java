@@ -3,12 +3,14 @@ package com.crdt.users;
 import com.crdt.*;
 import de.mkammerer.argon2.*;
 
+import java.security.SecureRandom;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.Base64;
 
 public class User implements Reportable {
     protected int id;
@@ -51,16 +53,16 @@ public class User implements Reportable {
         int memory = 1 << 15;
         int parallelism = 2;
         byte[] salt = new byte[16];
-        new java.security.SecureRandom().nextBytes(salt);
+        new SecureRandom().nextBytes(salt);
         byte[] hash = ARGON2.rawHash(iterations, memory, parallelism, password.toCharArray(), salt);
 
-        String str_salt = java.util.Base64.getEncoder().encodeToString(salt);
-        String str_hash = java.util.Base64.getEncoder().encodeToString(hash);
+        String str_salt = Base64.getEncoder().encodeToString(salt);
+        String str_hash = Base64.getEncoder().encodeToString(hash);
 
         return str_salt + ":" + str_hash;
     }
 
-    public void create() {
+    public void register() {
         String sql;
         if(this instanceof Admin)
             sql = "INSERT INTO users (username, email, password_hash, gender, bio, pfp, admin) VALUES (?, ?, ?, ?, ?, ?, ?)";
@@ -79,6 +81,36 @@ public class User implements Reportable {
         } catch (SQLException e) {
             e.printStackTrace();
         }
+    }
+
+    public static User login(String s, String p) {
+        String pass = User.HashPassword(p);
+        String sql = "SELECT * FROM users WHERE password_hash = ? AND (username = ? OR email = ?)";
+        try (PreparedStatement stmt = Database.PrepareStatement(sql)) {
+            stmt.setString(1, pass);
+            stmt.setString(2, s);
+            stmt.setString(3, s);
+            stmt.executeUpdate();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+
+        try (PreparedStatement stmt = Database.PrepareStatement(sql);
+             ResultSet rs = stmt.executeQuery()) {
+            while (rs.next()) {
+                if(rs.getInt("admin") == 1)
+                    return new Admin(rs.getInt("id"), rs.getString("username"), rs.getString("email"), rs.getString("password_hash"),
+                            Gender.toGender(rs.getString("gender")), rs.getString("bio"), new Media(MediaType.IMAGE, rs.getString("pfp")),
+                            rs.getTimestamp("create_time"), rs.getInt("active") != 0);
+
+                return new User(rs.getInt("id"), rs.getString("username"), rs.getString("email"), rs.getString("password_hash"),
+                        Gender.toGender(rs.getString("gender")), rs.getString("bio"), new Media(MediaType.IMAGE, rs.getString("pfp")),
+                        rs.getTimestamp("create_time"), rs.getInt("active") != 0);
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return null;
     }
 
     public void update() {
