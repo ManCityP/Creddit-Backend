@@ -32,7 +32,7 @@ public class User implements Reportable {
             return;
         if(!email.matches("^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$") || email.length() > 255)
             return;
-        if (password == null || password.length() < 8 || password.length() > 16)
+        if (password == null || password.length() < 8 || password.length() > 32)
             return;
         if (gender == null)
             return;
@@ -63,6 +63,7 @@ public class User implements Reportable {
     }
 
     public void register() {
+        System.out.println(this.username + "\n" + this.email + "\n" + this.password + "\n" + this.gender + "\n" + this.bio + "\n" + (this.pfp != null? this.pfp.GetURL() : "") + "\n");
         String sql;
         sql = "INSERT INTO users (username, email, password_hash, gender, bio, pfp) VALUES (?, ?, ?, ?, ?, ?)";
         try (PreparedStatement stmt = Database.PrepareStatement(sql)) {
