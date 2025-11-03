@@ -19,7 +19,7 @@ public class User implements Reportable {
     protected String bio;
     protected Media pfp;
     protected Timestamp timeCreated;
-    protected  boolean active;
+    protected boolean active;
 
     private static final Argon2Advanced ARGON2 = Argon2Factory.createAdvanced(Argon2Factory.Argon2Types.ARGON2id);
 
@@ -63,9 +63,9 @@ public class User implements Reportable {
     public void create() {
         String sql;
         if(this instanceof Admin)
-            sql = "INSERT INTO posts (username, email, password_hash, gender, bio, pfp, admin) VALUES (?, ?, ?, ?, ?, ?, ?)";
+            sql = "INSERT INTO users (username, email, password_hash, gender, bio, pfp, admin) VALUES (?, ?, ?, ?, ?, ?, ?)";
         else
-            sql = "INSERT INTO posts (username, email, password_hash, gender, bio, pfp) VALUES (?, ?, ?, ?, ?, ?)";
+            sql = "INSERT INTO users (username, email, password_hash, gender, bio, pfp) VALUES (?, ?, ?, ?, ?, ?)";
         try (PreparedStatement stmt = Database.PrepareStatement(sql)) {
             stmt.setString(1, this.username);
             stmt.setString(2, this.email);
@@ -108,7 +108,7 @@ public class User implements Reportable {
         }
     }
 
-    public void activate() {
+    public void activate() { //todo put in admin
         if(this.active)
             return;
         String sql = "UPDATE users SET active = 1 WHERE id = " + this.id;
@@ -129,7 +129,7 @@ public class User implements Reportable {
             stmt.executeUpdate();
         } catch (SQLException e) {
             if(e.getSQLState().equals("23505")) { // If it is because of duplicate primary key
-                String sql2 = "UPDATE posts_views SET view_time = ? (post_id = ? AND user_id = ?)";
+                String sql2 = "UPDATE posts_views SET view_time = ? WHERE (post_id = ? AND user_id = ?)";
                 try (PreparedStatement stmt = Database.PrepareStatement(sql2)) {
                     stmt.setTimestamp(1, Timestamp.from(Instant.now()));
                     stmt.setInt(2, post.GetID());
@@ -298,7 +298,7 @@ public class User implements Reportable {
                 int sender_id = rs.getInt("sender_id");
                 messages.add(new Message(rs.getInt("id"), sender_id == id1? this : friend, sender_id == id1? friend : this,
                         rs.getString("content"), new Media(MediaType.toMediaType(rs.getString("media_type")), rs.getString("media_url")),
-                        rs.getTimestamp("create_time"), rs.getTimestamp("edit_time"), rs.getInt("read") == 0? false : true
+                        rs.getTimestamp("create_time"), rs.getTimestamp("edit_time"), rs.getInt("read") != 0
                 ));
             }
         } catch (SQLException e) {
@@ -321,7 +321,7 @@ public class User implements Reportable {
                 int sender_id = rs.getInt("sender_id");
                 messages.add(new Message(rs.getInt("id"), sender_id == id1? this : friend, sender_id == id1? friend : this,
                         rs.getString("content"), new Media(MediaType.toMediaType(rs.getString("media_type")), rs.getString("media_url")),
-                        rs.getTimestamp("create_time"), rs.getTimestamp("edit_time"), rs.getInt("read") == 0? false : true
+                        rs.getTimestamp("create_time"), rs.getTimestamp("edit_time"), rs.getInt("read") != 0
                 ));
             }
         } catch (SQLException e) {
