@@ -80,7 +80,7 @@ public class Server {
                         .registerSubtype(User.class, "user")
                         .registerSubtype(Admin.class, "admin");
 
-        Gson gson = new GsonBuilder().registerTypeAdapterFactory(userAdapter).create();
+        gson = new GsonBuilder().registerTypeAdapterFactory(userAdapter).create();
 
         // Enable CORS (for future frontend use)
         before((req, res) -> {
