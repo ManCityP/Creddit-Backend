@@ -7,6 +7,7 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
+import java.time.Instant;
 import java.util.ArrayList;
 
 public class User implements Reportable {
@@ -115,6 +116,31 @@ public class User implements Reportable {
             stmt.executeUpdate();
         } catch (SQLException e) {
             e.printStackTrace();
+        }
+    }
+
+    public void viewPost(Post post) {
+        if(!this.active || post == null || post.GetID() <= 0)
+            return;
+        String sql = "INSERT INTO posts_views (post_id, user_id) VALUES (?, ?)";
+        try (PreparedStatement stmt = Database.PrepareStatement(sql)) {
+            stmt.setInt(1, post.GetID());
+            stmt.setInt(2, this.id);
+            stmt.executeUpdate();
+        } catch (SQLException e) {
+            if(e.getSQLState().equals("23505")) { // If it is because of duplicate primary key
+                String sql2 = "UPDATE posts_views SET view_time = ? (post_id = ? AND user_id = ?)";
+                try (PreparedStatement stmt = Database.PrepareStatement(sql2)) {
+                    stmt.setTimestamp(1, Timestamp.from(Instant.now()));
+                    stmt.setInt(2, post.GetID());
+                    stmt.setInt(3, this.id);
+                    stmt.executeUpdate();
+                } catch (SQLException ex) {
+                    ex.printStackTrace();
+                }
+            }
+            else
+                e.printStackTrace();
         }
     }
 
@@ -308,14 +334,52 @@ public class User implements Reportable {
         //TODO wainting for Meho
     }
 
-    public void Upvote(Voteable voteable){
-        //TODO wainting for Meho
+    public void vote(Voteable voteable, int voteValue) { // voteValue -> {1: upvote, -1: downvote, 0: remove vote}
+        if(!this.active || voteable == null || (voteValue != -1 && voteValue != 1 && voteValue != 0))
+            return;
+        try {
+            if (voteable instanceof Post) {
+                Post post = (Post) voteable;
+                if (post.GetID() <= 0)
+                    return;
+                if (voteValue == 0) {
+                    String sql = "DELETE FROM votes_posts WHERE (user_id = ? AND post_id = ?)";
+                    PreparedStatement stmt = Database.PrepareStatement(sql);
+                    stmt.setInt(1, this.id);
+                    stmt.setInt(2, post.GetID());
+                    stmt.executeUpdate();
+                    return;
+                }
+                String sql = "INSERT INTO votes_posts (user_id, post_id, value) VALUES (?, ?, ?)";
+                PreparedStatement stmt = Database.PrepareStatement(sql);
+                stmt.setInt(1, this.id);
+                stmt.setInt(2, post.GetID());
+                stmt.setInt(3, voteValue);
+                stmt.executeUpdate();
+            }
+            else if(voteable instanceof Comment) {
+                Comment comment = (Comment) voteable;
+                if (comment.getID() <= 0)
+                    return;
+                if (voteValue == 0) {
+                    String sql = "DELETE FROM votes_comments WHERE (user_id = ? AND comment_id = ?)";
+                    PreparedStatement stmt = Database.PrepareStatement(sql);
+                    stmt.setInt(1, this.id);
+                    stmt.setInt(2, comment.getID());
+                    stmt.executeUpdate();
+                    return;
+                }
+                String sql = "INSERT INTO votes_comments (user_id, comment_id, value) VALUES (?, ?, ?)";
+                PreparedStatement stmt = Database.PrepareStatement(sql);
+                stmt.setInt(1, this.id);
+                stmt.setInt(2, comment.getID());
+                stmt.setInt(3, voteValue);
+                stmt.executeUpdate();
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
     }
-
-    public void Downvote(Voteable voteable){
-        //TODO wainting for Meho
-    }
-
 
     //TODO: Setters will probably be useless, waiting to be removed.
     public void setUsername(String username) {

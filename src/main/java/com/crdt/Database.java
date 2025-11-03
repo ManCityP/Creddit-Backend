@@ -67,7 +67,7 @@ public abstract class Database {
                 try (PreparedStatement stmt3 = PrepareStatement(sql3);
                      ResultSet rs3 = stmt3.executeQuery()) {
                     while(rs3.next()) {
-                        votes += (rs3.getString("value").equalsIgnoreCase("Up")? 1 : -1);
+                        votes += rs3.getInt("value");
                     }
                 }
 
@@ -103,7 +103,7 @@ public abstract class Database {
                 try (PreparedStatement stmt3 = PrepareStatement(sql3);
                      ResultSet rs3 = stmt3.executeQuery()) {
                     while(rs3.next()) {
-                        votes += (rs3.getString("value").equalsIgnoreCase("Up")? 1 : -1);
+                        votes += rs3.getInt("value");
                     }
                 }
 

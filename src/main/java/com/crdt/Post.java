@@ -7,7 +7,7 @@ import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.util.ArrayList;
 
-public class Post {
+public class Post implements Voteable, Reportable {
     private int id;
     private User author;
     private Subcreddit subcreddit;

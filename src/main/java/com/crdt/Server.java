@@ -118,6 +118,42 @@ public class Server {
             }
         });
 
+        // Route: Insert Post view
+        post("/post/view", (req, res) -> {
+            try {
+                Gson gson = new Gson();
+                JsonObject json = gson.fromJson(req.body(), JsonObject.class);
+                User user = gson.fromJson(json.get("user"), User.class);
+                Post post = gson.fromJson(json.get("post"), Post.class);
+                user.viewPost(post);
+                res.type("application/json");
+                return gson.toJson(Map.of("status", "ok"));
+            } catch (Exception e) {
+                e.printStackTrace(); // server log
+                res.status(500);
+                return gson.toJson(Map.of("status", "error", "message", e.getMessage()));
+            }
+        });
+
+        //Route: Post vote by user
+        post("/post/vote", (req, res) -> {
+            try {
+                Gson gson = new Gson();
+                JsonObject json = gson.fromJson(req.body(), JsonObject.class);
+                User user = gson.fromJson(json.get("user"), User.class);
+                Post post = gson.fromJson(json.get("post"), Post.class);
+                int value = gson.fromJson(json.get("value"), int.class);
+
+                user.vote(post, value);
+                res.type("application/json");
+                return gson.toJson(Map.of("status", "ok"));
+            } catch (Exception e) {
+                e.printStackTrace(); // server log
+                res.status(500);
+                return gson.toJson(Map.of("status", "error", "message", e.getMessage()));
+            }
+        });
+
         // Route: Get a specific post
         get("/post", (req, res) -> {
             int id = Integer.parseInt(req.queryParams("id"));
@@ -365,6 +401,25 @@ public class Server {
             try {
                 Comment comment = gson.fromJson(req.body(), Comment.class);
                 comment.create();
+                res.type("application/json");
+                return gson.toJson(Map.of("status", "ok"));
+            } catch (Exception e) {
+                e.printStackTrace(); // server log
+                res.status(500);
+                return gson.toJson(Map.of("status", "error", "message", e.getMessage()));
+            }
+        });
+
+        //Route: Comment vote by user
+        post("/comment/vote", (req, res) -> {
+            try {
+                Gson gson = new Gson();
+                JsonObject json = gson.fromJson(req.body(), JsonObject.class);
+                User user = gson.fromJson(json.get("user"), User.class);
+                Comment comment = gson.fromJson(json.get("comment"), Comment.class);
+                int value = gson.fromJson(json.get("value"), int.class);
+
+                user.vote(comment, value);
                 res.type("application/json");
                 return gson.toJson(Map.of("status", "ok"));
             } catch (Exception e) {

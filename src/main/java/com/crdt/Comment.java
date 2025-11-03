@@ -6,7 +6,7 @@ import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.sql.Timestamp;
 
-public class Comment {
+public class Comment implements Voteable, Reportable {
     private int id;
     private Post post;
     private User author;
