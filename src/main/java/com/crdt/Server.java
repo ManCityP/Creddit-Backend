@@ -16,7 +16,7 @@ import java.util.*;
 public class Server {
 
     private static final String UPLOAD_DIR = System.getProperty("user.dir") + File.separator + "uploads";
-    private static Gson gson;
+    private static Gson gson; //WORK
     private static Process ngrokProcess;
 
     public static void main(String[] args) throws Exception {
