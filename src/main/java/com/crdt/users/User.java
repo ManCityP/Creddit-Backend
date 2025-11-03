@@ -62,6 +62,18 @@ public class User implements Reportable {
         return str_salt + ":" + str_hash;
     }
 
+    private static String HashPassword(String password, String str_salt) {
+        int iterations = 3;
+        int memory = 1 << 15;
+        int parallelism = 2;
+        byte[] salt = Base64.getDecoder().decode(str_salt);
+        byte[] hash = ARGON2.rawHash(iterations, memory, parallelism, password.toCharArray(), salt);
+
+        String str_hash = Base64.getEncoder().encodeToString(hash);
+
+        return str_salt + ":" + str_hash;
+    }
+
     public void register() {
         System.out.println(this.username + "\n" + this.email + "\n" + this.password + "\n" + this.gender + "\n" + this.bio + "\n" + (this.pfp != null? this.pfp.GetURL() : "") + "\n");
         String sql;
@@ -80,26 +92,22 @@ public class User implements Reportable {
     }
 
     public static User login(String s, String p) {
-        String pass = User.HashPassword(p);
-        String sql = "SELECT * FROM users WHERE password_hash = ? AND (username = ? OR email = ?)";
+        String sql = "SELECT * FROM users WHERE (username = ? OR email = ?)";
         try (PreparedStatement stmt = Database.PrepareStatement(sql)) {
-            stmt.setString(1, pass);
+            stmt.setString(1, s);
             stmt.setString(2, s);
-            stmt.setString(3, s);
-            stmt.executeUpdate();
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
-
-        try (PreparedStatement stmt = Database.PrepareStatement(sql);
-             ResultSet rs = stmt.executeQuery()) {
-            while (rs.next()) {
+            ResultSet rs = stmt.executeQuery();
+            if (rs.next()) {
+                String passwordHash = rs.getString("password_hash");
+                String pass = User.HashPassword(p, passwordHash.split(":")[0]);
+                if(!pass.equals(passwordHash))
+                    return null;
                 if(rs.getInt("admin") == 1)
-                    return new Admin(rs.getInt("id"), rs.getString("username"), rs.getString("email"), rs.getString("password_hash"),
+                    return new Admin(rs.getInt("id"), rs.getString("username"), rs.getString("email"), p,
                             Gender.toGender(rs.getString("gender")), rs.getString("bio"), new Media(MediaType.IMAGE, rs.getString("pfp")),
                             rs.getTimestamp("create_time"), rs.getInt("active") != 0);
 
-                return new User(rs.getInt("id"), rs.getString("username"), rs.getString("email"), rs.getString("password_hash"),
+                return new User(rs.getInt("id"), rs.getString("username"), rs.getString("email"), p,
                         Gender.toGender(rs.getString("gender")), rs.getString("bio"), new Media(MediaType.IMAGE, rs.getString("pfp")),
                         rs.getTimestamp("create_time"), rs.getInt("active") != 0);
             }
