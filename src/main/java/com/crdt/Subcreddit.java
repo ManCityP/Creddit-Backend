@@ -36,6 +36,7 @@ public class Subcreddit {
             stmt.setString(4, this.subLogo.GetURL());
             stmt.setInt(5, this.isPrivate? 1 : 0);
             stmt.executeUpdate();
+            this.creator.joinSubcreddit(this);
         } catch (SQLException e) {
             e.printStackTrace();
         }

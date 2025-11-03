@@ -6,6 +6,7 @@ import com.crdt.users.Admin;
 import com.crdt.users.Moderator;
 import com.crdt.users.User;
 import com.google.gson.*;
+import com.google.gson.typeadapters.RuntimeTypeAdapterFactory;
 
 import javax.servlet.MultipartConfigElement;
 import java.io.*;
@@ -15,7 +16,7 @@ import java.util.*;
 public class Server {
 
     private static final String UPLOAD_DIR = System.getProperty("user.dir") + File.separator + "uploads";
-    private static final Gson gson = new Gson();
+    private static Gson gson;
     private static Process ngrokProcess;
 
     public static void main(String[] args) throws Exception {
@@ -74,6 +75,13 @@ public class Server {
             }
         }).start();
 
+        RuntimeTypeAdapterFactory<User> userAdapter =
+                RuntimeTypeAdapterFactory.of(User.class, "type")
+                        .registerSubtype(User.class, "user")
+                        .registerSubtype(Admin.class, "admin");
+
+        Gson gson = new GsonBuilder().registerTypeAdapterFactory(userAdapter).create();
+
         // Enable CORS (for future frontend use)
         before((req, res) -> {
             res.header("Access-Control-Allow-Origin", "*");
@@ -121,7 +129,6 @@ public class Server {
         // Route: Insert Post view
         post("/post/view", (req, res) -> {
             try {
-                Gson gson = new Gson();
                 JsonObject json = gson.fromJson(req.body(), JsonObject.class);
                 User user = gson.fromJson(json.get("user"), User.class);
                 Post post = gson.fromJson(json.get("post"), Post.class);
@@ -138,7 +145,6 @@ public class Server {
         //Route: Post vote by user
         post("/post/vote", (req, res) -> {
             try {
-                Gson gson = new Gson();
                 JsonObject json = gson.fromJson(req.body(), JsonObject.class);
                 User user = gson.fromJson(json.get("user"), User.class);
                 Post post = gson.fromJson(json.get("post"), Post.class);
@@ -223,7 +229,6 @@ public class Server {
         //Route: Ban a user globally
         post("/user/ban", (req, res) -> {
             try {
-                Gson gson = new Gson();
                 JsonObject json = gson.fromJson(req.body(), JsonObject.class);
                 Admin admin = gson.fromJson(json.get("admin"), Admin.class);
                 User user = gson.fromJson(json.get("user"), User.class);
@@ -242,7 +247,6 @@ public class Server {
         //Route: Unban a user globally
         post("/user/unban", (req, res) -> {
             try {
-                Gson gson = new Gson();
                 JsonObject json = gson.fromJson(req.body(), JsonObject.class);
                 Admin admin = gson.fromJson(json.get("admin"), Admin.class);
                 User user = gson.fromJson(json.get("user"), User.class);
@@ -260,7 +264,6 @@ public class Server {
         // Route: Send Friend Request
         post("/friends/send", (req, res) -> {
             try {
-                Gson gson = new Gson();
                 JsonObject json = gson.fromJson(req.body(), JsonObject.class);
                 User sender = gson.fromJson(json.get("sender"), User.class);
                 User receiver = gson.fromJson(json.get("receiver"), User.class);
@@ -278,7 +281,6 @@ public class Server {
         // Route: Unfriend
         post("/friends/remove", (req, res) -> {
             try {
-                Gson gson = new Gson();
                 JsonObject json = gson.fromJson(req.body(), JsonObject.class);
                 User user1 = gson.fromJson(json.get("user1"), User.class);
                 User user2 = gson.fromJson(json.get("user2"), User.class);
@@ -329,6 +331,15 @@ public class Server {
             return gson.toJson(user);
         });
 
+        // Route: login user
+        get("/user/login", (req, res) -> {
+            String usermail = req.queryParams("usermail");
+            String password = req.queryParams("password");
+            User user = User.login(usermail, password);
+            res.type("application/json");
+            return gson.toJson(user);
+        });
+
         // Route: Get all users
         get("/user/all", (req, res) -> {
             ArrayList<User> users = Database.GetAllUsers();
@@ -370,7 +381,6 @@ public class Server {
 
         // Route: Get user's private message feed
         get("/pm/feed", (req, res) -> {
-            Gson gson = new Gson();
             JsonObject json = gson.fromJson(req.body(), JsonObject.class);
             User user1 = gson.fromJson(json.get("user1"), User.class);
             User user2 = gson.fromJson(json.get("user2"), User.class);
@@ -382,7 +392,6 @@ public class Server {
 
         // Route: Get user's private message feed
         get("/pm/update", (req, res) -> {
-            Gson gson = new Gson();
             JsonObject json = gson.fromJson(req.body(), JsonObject.class);
             User user1 = gson.fromJson(json.get("user1"), User.class);
             User user2 = gson.fromJson(json.get("user2"), User.class);
@@ -413,7 +422,6 @@ public class Server {
         //Route: Comment vote by user
         post("/comment/vote", (req, res) -> {
             try {
-                Gson gson = new Gson();
                 JsonObject json = gson.fromJson(req.body(), JsonObject.class);
                 User user = gson.fromJson(json.get("user"), User.class);
                 Comment comment = gson.fromJson(json.get("comment"), Comment.class);
@@ -479,7 +487,6 @@ public class Server {
         //Route: join a subcreddit
         post("/subcreddit/join", (req, res) -> {
             try {
-                Gson gson = new Gson();
                 JsonObject json = gson.fromJson(req.body(), JsonObject.class);
                 User user = gson.fromJson(json.get("user"), User.class);
                 Subcreddit sub = gson.fromJson(json.get("subcreddit"), Subcreddit.class);
@@ -497,7 +504,6 @@ public class Server {
         //Route: leave a subcreddit
         post("/subcreddit/leave", (req, res) -> {
             try {
-                Gson gson = new Gson();
                 JsonObject json = gson.fromJson(req.body(), JsonObject.class);
                 User user = gson.fromJson(json.get("user"), User.class);
                 Subcreddit sub = gson.fromJson(json.get("subcreddit"), Subcreddit.class);
@@ -515,7 +521,6 @@ public class Server {
         //Route: Ban a subcreddit member
         post("/subcreddit/ban", (req, res) -> {
             try {
-                Gson gson = new Gson();
                 JsonObject json = gson.fromJson(req.body(), JsonObject.class);
                 Moderator moderator = gson.fromJson(json.get("moderator"), Moderator.class);
                 User user = gson.fromJson(json.get("user"), User.class);
@@ -535,7 +540,6 @@ public class Server {
         //Route: Unban a subcreddit member
         post("/subcreddit/unban", (req, res) -> {
             try {
-                Gson gson = new Gson();
                 JsonObject json = gson.fromJson(req.body(), JsonObject.class);
                 Moderator moderator = gson.fromJson(json.get("moderator"), Moderator.class);
                 User user = gson.fromJson(json.get("user"), User.class);
@@ -576,7 +580,6 @@ public class Server {
 
         // Route: Get subcreddit bans
         get("/subcreddit/verifymod", (req, res) -> {
-            Gson gson = new Gson();
             JsonObject json = gson.fromJson(req.body(), JsonObject.class);
             Moderator moderator = gson.fromJson(json.get("moderator"), Moderator.class);
             Subcreddit sub = gson.fromJson(json.get("subcreddit"), Subcreddit.class);

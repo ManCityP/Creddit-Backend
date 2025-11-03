@@ -64,10 +64,7 @@ public class User implements Reportable {
 
     public void register() {
         String sql;
-        if(this instanceof Admin)
-            sql = "INSERT INTO users (username, email, password_hash, gender, bio, pfp, admin) VALUES (?, ?, ?, ?, ?, ?, ?)";
-        else
-            sql = "INSERT INTO users (username, email, password_hash, gender, bio, pfp) VALUES (?, ?, ?, ?, ?, ?)";
+        sql = "INSERT INTO users (username, email, password_hash, gender, bio, pfp) VALUES (?, ?, ?, ?, ?, ?)";
         try (PreparedStatement stmt = Database.PrepareStatement(sql)) {
             stmt.setString(1, this.username);
             stmt.setString(2, this.email);
@@ -75,8 +72,6 @@ public class User implements Reportable {
             stmt.setString(4, this.gender.toString());
             stmt.setString(5, this.bio);
             stmt.setString(6, this.pfp.GetURL());
-            if(this instanceof Admin)
-                stmt.setInt(7, 1);
             stmt.executeUpdate();
         } catch (SQLException e) {
             e.printStackTrace();
@@ -154,25 +149,14 @@ public class User implements Reportable {
     public void viewPost(Post post) {
         if(!this.active || post == null || post.GetID() <= 0)
             return;
-        String sql = "INSERT INTO posts_views (post_id, user_id) VALUES (?, ?)";
+        String sql = "INSERT INTO posts_views (post_id, user_id) VALUES (?, ?) ON DUPLICATE KEY UPDATE view_time = VALUES(?)";
         try (PreparedStatement stmt = Database.PrepareStatement(sql)) {
             stmt.setInt(1, post.GetID());
             stmt.setInt(2, this.id);
+            stmt.setTimestamp(3, Timestamp.from(Instant.now()));
             stmt.executeUpdate();
         } catch (SQLException e) {
-            if(e.getSQLState().equals("23505")) { // If it is because of duplicate primary key
-                String sql2 = "UPDATE posts_views SET view_time = ? WHERE (post_id = ? AND user_id = ?)";
-                try (PreparedStatement stmt = Database.PrepareStatement(sql2)) {
-                    stmt.setTimestamp(1, Timestamp.from(Instant.now()));
-                    stmt.setInt(2, post.GetID());
-                    stmt.setInt(3, this.id);
-                    stmt.executeUpdate();
-                } catch (SQLException ex) {
-                    ex.printStackTrace();
-                }
-            }
-            else
-                e.printStackTrace();
+            e.printStackTrace();
         }
     }
 
@@ -382,11 +366,12 @@ public class User implements Reportable {
                     stmt.executeUpdate();
                     return;
                 }
-                String sql = "INSERT INTO votes_posts (user_id, post_id, value) VALUES (?, ?, ?)";
+                String sql = "INSERT INTO votes_posts (user_id, post_id, value) VALUES (?, ?, ?) ON DUPLICATE KEY UPDATE value = VALUES(?)";
                 PreparedStatement stmt = Database.PrepareStatement(sql);
                 stmt.setInt(1, this.id);
                 stmt.setInt(2, post.GetID());
                 stmt.setInt(3, voteValue);
+                stmt.setInt(4, voteValue);
                 stmt.executeUpdate();
             }
             else if(voteable instanceof Comment) {
@@ -401,11 +386,12 @@ public class User implements Reportable {
                     stmt.executeUpdate();
                     return;
                 }
-                String sql = "INSERT INTO votes_comments (user_id, comment_id, value) VALUES (?, ?, ?)";
+                String sql = "INSERT INTO votes_comments (user_id, comment_id, value) VALUES (?, ?, ?) ON DUPLICATE KEY UPDATE value = VALUES(?)";
                 PreparedStatement stmt = Database.PrepareStatement(sql);
                 stmt.setInt(1, this.id);
                 stmt.setInt(2, comment.getID());
                 stmt.setInt(3, voteValue);
+                stmt.setInt(4, voteValue);
                 stmt.executeUpdate();
             }
         } catch (SQLException e) {
