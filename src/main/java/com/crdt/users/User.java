@@ -4,10 +4,7 @@ import com.crdt.*;
 import de.mkammerer.argon2.*;
 
 import java.security.SecureRandom;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.Timestamp;
+import java.sql.*;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Base64;
@@ -75,7 +72,6 @@ public class User implements Reportable {
     }
 
     public void register() {
-        System.out.println(this.username + "\n" + this.email + "\n" + this.password + "\n" + this.gender + "\n" + this.bio + "\n" + (this.pfp != null? this.pfp.GetURL() : "") + "\n");
         String sql;
         sql = "INSERT INTO users (username, email, password_hash, gender, bio, pfp) VALUES (?, ?, ?, ?, ?, ?)";
         try (PreparedStatement stmt = Database.PrepareStatement(sql)) {
