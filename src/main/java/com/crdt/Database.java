@@ -35,7 +35,7 @@ public abstract class Database {
     public static int InsertCategory(String category) throws SQLException {
         String sql = "INSERT INTO categories (name) VALUES (?)";
         try (PreparedStatement stmt = PrepareStatement(sql)) {
-            stmt.setString(1, category);
+            stmt.setString(1, category.toLowerCase());
             stmt.executeUpdate();
             try (ResultSet rs = stmt.getGeneratedKeys()) {
                 if (rs.next())
@@ -54,18 +54,20 @@ public abstract class Database {
 
                 int postid = rs.getInt("id");
                 ArrayList<Media> media = new ArrayList<>();
-                String sql2 = "SELECT * FROM post_media ORDER BY id ASC WHERE (post_id = " + postid + ")";
-                try (PreparedStatement stmt2 = PrepareStatement(sql2);
-                     ResultSet rs2 = stmt2.executeQuery()) {
+                String sql2 = "SELECT * FROM post_media ORDER BY id ASC WHERE (post_id = ?)";
+                try (PreparedStatement stmt2 = PrepareStatement(sql2)) {
+                    stmt2.setInt(1, postid);
+                    ResultSet rs2 = stmt2.executeQuery();
                     while (rs2.next()) {
                         media.add(new Media(MediaType.toMediaType(rs.getString("media_type")), rs.getString("media_url")));
                     }
                 }
 
                 int votes = 0;
-                String sql3 = "SELECT * FROM votes_posts WHERE (post_id = " + postid + ")";
-                try (PreparedStatement stmt3 = PrepareStatement(sql3);
-                     ResultSet rs3 = stmt3.executeQuery()) {
+                String sql3 = "SELECT * FROM votes_posts WHERE (post_id = ?)";
+                try (PreparedStatement stmt3 = PrepareStatement(sql3)) {
+                    stmt3.setInt(1, postid);
+                    ResultSet rs3 = stmt3.executeQuery();
                     while(rs3.next()) {
                         votes += rs3.getInt("value");
                     }
@@ -84,24 +86,27 @@ public abstract class Database {
         if(postid <= 0)
             return null;
 
-        String sql = "SELECT * FROM posts WHERE (id = " + postid + ")";
-        try (PreparedStatement stmt = PrepareStatement(sql);
-             ResultSet rs = stmt.executeQuery()) {
+        String sql = "SELECT * FROM posts WHERE (id = ?)";
+        try (PreparedStatement stmt = PrepareStatement(sql)) {
+            stmt.setInt(1, postid);
+            ResultSet rs = stmt.executeQuery();
             if (rs.next()) {
 
                 ArrayList<Media> media = new ArrayList<>();
-                String sql2 = "SELECT * FROM post_media ORDER BY id ASC WHERE (post_id = " + postid + ")";
-                try (PreparedStatement stmt2 = PrepareStatement(sql2);
-                     ResultSet rs2 = stmt2.executeQuery()) {
+                String sql2 = "SELECT * FROM post_media ORDER BY id ASC WHERE (post_id = ?)";
+                try (PreparedStatement stmt2 = PrepareStatement(sql2)) {
+                    stmt2.setInt(1, postid);
+                    ResultSet rs2 = stmt2.executeQuery();
                     while (rs2.next()) {
                         media.add(new Media(MediaType.toMediaType(rs.getString("media_type")), rs.getString("media_url")));
                     }
                 }
 
                 int votes = 0;
-                String sql3 = "SELECT * FROM votes_posts WHERE (post_id = " + postid + ")";
-                try (PreparedStatement stmt3 = PrepareStatement(sql3);
-                     ResultSet rs3 = stmt3.executeQuery()) {
+                String sql3 = "SELECT * FROM votes_posts WHERE (post_id = ?)";
+                try (PreparedStatement stmt3 = PrepareStatement(sql3)) {
+                    stmt3.setInt(1, postid);
+                    ResultSet rs3 = stmt3.executeQuery();
                     while(rs3.next()) {
                         votes += rs3.getInt("value");
                     }
@@ -117,9 +122,10 @@ public abstract class Database {
 
     private static ArrayList<String> GetPostCategories(int postID) throws SQLException {
         ArrayList<String> categories = new ArrayList<>();
-        String sql = "SELECT * FROM post_categories WHERE (post_id = " + postID + ")";
-        try (PreparedStatement stmt = PrepareStatement(sql);
-             ResultSet rs = stmt.executeQuery()) {
+        String sql = "SELECT * FROM post_categories WHERE (post_id = ?)";
+        try (PreparedStatement stmt = PrepareStatement(sql)) {
+            stmt.setInt(1, postID);
+            ResultSet rs = stmt.executeQuery();
             while (rs.next()) {
                 categories.add(GetCategory(rs.getInt("category_id")));
             }
@@ -143,9 +149,10 @@ public abstract class Database {
         if(categoryID <= 0)
             return null;
 
-        String sql = "SELECT * FROM categories WHERE (id = " + categoryID + ")";
-        try (PreparedStatement stmt = PrepareStatement(sql);
-             ResultSet rs = stmt.executeQuery()) {
+        String sql = "SELECT * FROM categories WHERE (id = ?)";
+        try (PreparedStatement stmt = PrepareStatement(sql)) {
+            stmt.setInt(1, categoryID);
+            ResultSet rs = stmt.executeQuery();
             if (rs.next()) {
                 return rs.getString("name");
             }
@@ -154,9 +161,10 @@ public abstract class Database {
     }
 
     public static int CategoryExists(String categoryName) throws SQLException {
-        String sql = "SELECT * FROM categories WHERE (name = " + categoryName.toLowerCase() + ")";
-        try (PreparedStatement stmt = PrepareStatement(sql);
-             ResultSet rs = stmt.executeQuery()) {
+        String sql = "SELECT * FROM categories WHERE (name = ?)";
+        try (PreparedStatement stmt = PrepareStatement(sql)) {
+            stmt.setString(1, categoryName.toLowerCase());
+            ResultSet rs = stmt.executeQuery();
             if (rs.next()) {
                 return rs.getInt("id");
             }
@@ -188,8 +196,9 @@ public abstract class Database {
     }
 
     public static User GetUser(int id) throws SQLException {
-        String sql = "SELECT * FROM users WHERE (id = " + id + ")";
+        String sql = "SELECT * FROM users WHERE (id = ?)";
         try (PreparedStatement stmt = PrepareStatement(sql)) {
+            stmt.setInt(1, id);
             ResultSet rs = stmt.executeQuery();
             if (rs.next()) {
                 if(rs.getInt("admin") == 1)
@@ -212,16 +221,18 @@ public abstract class Database {
     // BOOKMARK: Comments
     public static ArrayList<Comment> GetAllComments(int postid) throws SQLException {
         ArrayList<Comment> comments = new ArrayList<>();
-        String sql = "SELECT * FROM comments ORDER BY id DESC WHERE (post_id = " + postid + ")";
+        String sql = "SELECT * FROM comments ORDER BY id DESC WHERE (post_id = ?)";
 
-        try (PreparedStatement stmt = PrepareStatement(sql);
-             ResultSet rs = stmt.executeQuery()) {
+        try (PreparedStatement stmt = PrepareStatement(sql)) {
+            stmt.setInt(1, postid);
+            ResultSet rs = stmt.executeQuery();
             while (rs.next()) {
                 int commentID = rs.getInt("id");
                 int votes = 0;
-                String sql2 = "SELECT * FROM votes_comments WHERE (comment_id = " + commentID + ")";
-                try (PreparedStatement stmt2 = PrepareStatement(sql2);
-                     ResultSet rs2 = stmt2.executeQuery()) {
+                String sql2 = "SELECT * FROM votes_comments WHERE (comment_id = ?)";
+                try (PreparedStatement stmt2 = PrepareStatement(sql2)) {
+                    stmt2.setInt(1, commentID);
+                    ResultSet rs2 = stmt2.executeQuery();
                     while(rs2.next()) {
                         votes += (rs2.getString("value").equalsIgnoreCase("Up")? 1 : -1);
                     }
@@ -239,15 +250,17 @@ public abstract class Database {
         if(commentid <= 0)
             return null;
 
-        String sql = "SELECT * FROM comments WHERE (id = " + commentid + ")";
+        String sql = "SELECT * FROM comments WHERE (id = ?)";
 
-        try (PreparedStatement stmt = PrepareStatement(sql);
-             ResultSet rs = stmt.executeQuery()) {
+        try (PreparedStatement stmt = PrepareStatement(sql)) {
+            stmt.setInt(1, commentid);
+            ResultSet rs = stmt.executeQuery();
             if (rs.next()) {
                 int votes = 0;
-                String sql2 = "SELECT * FROM votes_comments WHERE (comment_id = " + commentid + ")";
-                try (PreparedStatement stmt2 = PrepareStatement(sql2);
-                     ResultSet rs2 = stmt2.executeQuery()) {
+                String sql2 = "SELECT * FROM votes_comments WHERE (comment_id = ?)";
+                try (PreparedStatement stmt2 = PrepareStatement(sql2)) {
+                    stmt2.setInt(1, commentid);
+                    ResultSet rs2 = stmt2.executeQuery();
                     while(rs2.next()) {
                         votes += (rs2.getString("value").equalsIgnoreCase("Up")? 1 : -1);
                     }
@@ -283,10 +296,11 @@ public abstract class Database {
         if(subID <= 0)
             return null;
 
-        String sql = "SELECT * FROM subcreddits WHERE (id = " + subID + ")";
+        String sql = "SELECT * FROM subcreddits WHERE (id = ?)";
 
-        try (PreparedStatement stmt = PrepareStatement(sql);
-             ResultSet rs = stmt.executeQuery()) {
+        try (PreparedStatement stmt = PrepareStatement(sql)) {
+            stmt.setInt(1, subID);
+            ResultSet rs = stmt.executeQuery();
             if (rs.next()) {
                 return new Subcreddit(subID, rs.getString("name"), rs.getString("description"),
                         rs.getTimestamp("create_time"), GetUser(rs.getInt("creator_id")), new Media(MediaType.IMAGE, rs.getString("logo")),

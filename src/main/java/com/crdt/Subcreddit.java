@@ -54,10 +54,11 @@ public class Subcreddit {
 
     public ArrayList<User> GetMembers() {
         ArrayList<User> members = new ArrayList<>();
-        String sql = "SELECT * FROM subcreddit_members ORDER BY id DESC WHERE (accepted = 1 AND subcreddit_id = " + this.id + ")";
+        String sql = "SELECT * FROM subcreddit_members ORDER BY id DESC WHERE (accepted = 1 AND subcreddit_id = ?)";
 
-        try (PreparedStatement stmt = Database.PrepareStatement(sql);
-             ResultSet rs = stmt.executeQuery()) {
+        try (PreparedStatement stmt = Database.PrepareStatement(sql)) {
+            stmt.setInt(1, this.id);
+            ResultSet rs = stmt.executeQuery();
             while (rs.next()) {
                 members.add(Database.GetUser(rs.getInt("user_id")));
             }
@@ -72,10 +73,11 @@ public class Subcreddit {
             return null;
 
         ArrayList<User> bannedMembers = new ArrayList<>();
-        String sql = "SELECT * FROM bans ORDER BY id DESC WHERE (subcreddit_id = " + this.id + ")";
+        String sql = "SELECT * FROM bans ORDER BY id DESC WHERE (subcreddit_id = ?)";
 
-        try (PreparedStatement stmt = Database.PrepareStatement(sql);
-             ResultSet rs = stmt.executeQuery()) {
+        try (PreparedStatement stmt = Database.PrepareStatement(sql)) {
+            stmt.setInt(1, this.id);
+            ResultSet rs = stmt.executeQuery();
             while (rs.next()) {
                 bannedMembers.add(Database.GetUser(rs.getInt("user_id")));
             }

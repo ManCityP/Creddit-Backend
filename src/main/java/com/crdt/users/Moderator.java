@@ -59,10 +59,12 @@ public class Moderator extends User {
         if(subcreddit.GetSubId() <= 0)
             return false;
 
-        String sql = "SELECT * FROM subcreddit_moderators WHERE (subcreddit_id = " + subcreddit.GetSubId() + " AND user_id = " + this.id + ")";
+        String sql = "SELECT * FROM subcreddit_moderators WHERE (subcreddit_id = ? AND user_id = ?)";
 
-        try (PreparedStatement stmt = Database.PrepareStatement(sql);
-             ResultSet rs = stmt.executeQuery()) {
+        try (PreparedStatement stmt = Database.PrepareStatement(sql)) {
+            stmt.setInt(1, subcreddit.GetSubId());
+            stmt.setInt(2, this.id);
+            ResultSet rs = stmt.executeQuery();
             if(rs.next())
                 return true;
         } catch (SQLException e) {

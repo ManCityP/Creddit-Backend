@@ -132,8 +132,9 @@ public class User implements Reportable {
     public void delete() {
         if(!this.active)
             return;
-        String sql = "UPDATE users SET active = 0 WHERE id = " + this.id;
+        String sql = "UPDATE users SET active = 0 WHERE id = ?";
         try (PreparedStatement stmt = Database.PrepareStatement(sql)) {
+            stmt.setInt(1, this.id);
             stmt.executeUpdate();
         } catch (SQLException e) {
             e.printStackTrace();
@@ -143,8 +144,9 @@ public class User implements Reportable {
     public void activate() { //todo put in admin
         if(this.active)
             return;
-        String sql = "UPDATE users SET active = 1 WHERE id = " + this.id;
+        String sql = "UPDATE users SET active = 1 WHERE id = ?";
         try (PreparedStatement stmt = Database.PrepareStatement(sql)) {
+            stmt.setInt(1, this.id);
             stmt.executeUpdate();
         } catch (SQLException e) {
             e.printStackTrace();
@@ -203,10 +205,11 @@ public class User implements Reportable {
 
     public ArrayList<Subcreddit> GetSubcreddits() {
         ArrayList<Subcreddit> subcreddits = new ArrayList<>();
-        String sql = "SELECT * FROM subcreddit_members ORDER BY id DESC WHERE (accepted = 1 AND user_id = " + this.id + ")";
+        String sql = "SELECT * FROM subcreddit_members ORDER BY id DESC WHERE (accepted = 1 AND user_id = ?)";
 
-        try (PreparedStatement stmt = Database.PrepareStatement(sql);
-             ResultSet rs = stmt.executeQuery()) {
+        try (PreparedStatement stmt = Database.PrepareStatement(sql)) {
+            stmt.setInt(1, this.id);
+            ResultSet rs = stmt.executeQuery();
             while (rs.next()) {
                 subcreddits.add(Database.GetSubcreddit(rs.getInt("subcreddit_id")));
             }
@@ -250,8 +253,10 @@ public class User implements Reportable {
 
     public ArrayList<User> GetFriends() {
         ArrayList<User> friends = new ArrayList<>();
-        String sql = "SELECT * FROM followers WHERE accepted = 1 AND (follower_id = " + this.id + " OR followed_id = " + this.id + ") ORDER BY create_time DESC";
+        String sql = "SELECT * FROM followers WHERE accepted = 1 AND (follower_id = ? OR followed_id = ?) ORDER BY create_time DESC";
         try (PreparedStatement stmt = Database.PrepareStatement(sql)) {
+            stmt.setInt(1, this.id);
+            stmt.setInt(2, this.id);
             ResultSet rs = stmt.executeQuery();
             while (rs.next()) {
                 int follower_id = rs.getInt("follower_id");
@@ -268,8 +273,9 @@ public class User implements Reportable {
 
     public ArrayList<User> GetSentFriendRequests() {
         ArrayList<User> friends = new ArrayList<>();
-        String sql = "SELECT * FROM followers WHERE accepted = 0 AND (follower_id = " + this.id + ") ORDER BY create_time DESC";
+        String sql = "SELECT * FROM followers WHERE accepted = 0 AND (follower_id = ?) ORDER BY create_time DESC";
         try (PreparedStatement stmt = Database.PrepareStatement(sql)) {
+            stmt.setInt(1, this.id);
             ResultSet rs = stmt.executeQuery();
             while (rs.next()) {
                 User user = Database.GetUser(rs.getInt("followed_id"));
@@ -285,8 +291,9 @@ public class User implements Reportable {
 
     public ArrayList<User> GetReceivedFriendRequests() {
         ArrayList<User> friends = new ArrayList<>();
-        String sql = "SELECT * FROM followers WHERE accepted = 0 AND (followed_id = " + this.id + ") ORDER BY create_time DESC";
+        String sql = "SELECT * FROM followers WHERE accepted = 0 AND (followed_id = ?) ORDER BY create_time DESC";
         try (PreparedStatement stmt = Database.PrepareStatement(sql)) {
+            stmt.setInt(1, this.id);
             ResultSet rs = stmt.executeQuery();
             while (rs.next()) {
                 User user = Database.GetUser(rs.getInt("follower_id"));
