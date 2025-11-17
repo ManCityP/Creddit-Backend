@@ -18,8 +18,9 @@ public class Post implements Voteable, Reportable {
     private Timestamp timeCreated;
     private Timestamp timeEdited;
     private int votes;
+    private int comments;
 
-    public Post(int id, User author, Subcreddit subcreddit, String title, String content, ArrayList<Media> media, ArrayList<String> categories, Timestamp timeCreated, Timestamp timeEdited, int votes) {
+    public Post(int id, User author, Subcreddit subcreddit, String title, String content, ArrayList<Media> media, ArrayList<String> categories, Timestamp timeCreated, Timestamp timeEdited, int votes, int comments) {
         if (id <= 0)
             return;
 
@@ -36,6 +37,7 @@ public class Post implements Voteable, Reportable {
         this.timeCreated = timeCreated;
         this.timeEdited = timeEdited;
         this.votes = votes;
+        this.comments = comments;
     }
 
     public void create() {
@@ -115,5 +117,8 @@ public class Post implements Voteable, Reportable {
 
     public int GetVotes() {
         return votes;
+    }
+    public int GetComments() {
+        return comments;
     }
 }

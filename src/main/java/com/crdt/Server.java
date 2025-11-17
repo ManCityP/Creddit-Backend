@@ -295,6 +295,16 @@ public class Server {
             }
         });
 
+        // Route: Get user's post feed
+        post("/post/feed", (req, res) -> {
+            JsonObject json = gson.fromJson(req.body(), JsonObject.class);
+            User user = gson.fromJson(json.get("user"), User.class);
+            int lastPostID = gson.fromJson(json.get("lastID"), int.class);
+            ArrayList<Post> posts = User.GetPostFeed(user, lastPostID);
+            res.type("application/json");
+            return gson.toJson(posts);
+        });
+
         // Route: Send Private message
         post("/pm/send", (req, res) -> {
             try {

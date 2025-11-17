@@ -5,9 +5,9 @@ import de.mkammerer.argon2.*;
 
 import java.security.SecureRandom;
 import java.sql.*;
+import java.time.Duration;
 import java.time.Instant;
-import java.util.ArrayList;
-import java.util.Base64;
+import java.util.*;
 
 public class User implements Reportable {
     protected int id;
@@ -23,7 +23,7 @@ public class User implements Reportable {
     private static final Argon2Advanced ARGON2 = Argon2Factory.createAdvanced(Argon2Factory.Argon2Types.ARGON2id);
 
     public User(int id, String username, String email, String password, Gender gender, String bio, Media pfp, Timestamp timeCreated, boolean active) {
-        if (id <= 0)
+        if (id < 0)
             return;
         if (username == null || username.isEmpty() || username.length() > 32)
             return;
@@ -165,6 +165,96 @@ public class User implements Reportable {
         } catch (SQLException e) {
             e.printStackTrace();
         }
+    }
+
+    private PriorityQueue<Post> ScorePosts(ArrayList<Post> posts) {
+        Map<Integer, Double> postScores = new LinkedHashMap<>();
+        ArrayList<Subcreddit> subs = new ArrayList<>();
+        ArrayList<User> followers = new ArrayList<>();
+        Map<String, Integer> freq = new HashMap<>();
+        if(this.id > 0) {
+            followers = this.GetFriends();
+            subs = this.GetSubcreddits();
+            freq = this.GetFrequentCategories();
+        }
+        double subcredditWeight = 200.0; double followerWeight = 100.0; double voteWeight = 10.0; double timeWeight = -5.0; double categoryWeight = 1.0;
+        boolean subcredditMatch = false, userFollowMatch = false;
+        int categoryMatch = 0;
+        for(Post post : posts) {
+            for(Subcreddit sub : subs) {
+                if (sub.GetSubId() == post.GetID()) {
+                    subcredditMatch = true;
+                    break;
+                }
+            }
+            for(User user : followers) {
+                if(user.id == post.GetAuthor().id) {
+                    userFollowMatch = true;
+                    break;
+                }
+            }
+            ArrayList<String> categories = post.GetCategories();
+            for(String category : categories) {
+                if(freq.containsKey(category))
+                    categoryMatch += Math.min(freq.get(category), 10);
+            }
+            long hoursOld = Duration.between(post.GetTimeCreated().toInstant(), Instant.now()).toHours();
+            double score = (subcredditWeight * (subcredditMatch? 1 : 0)) + (followerWeight * (userFollowMatch? 1 : 0)) + (voteWeight * ((double)post.GetVotes()/1000.0))
+                            + (timeWeight * hoursOld) + (categoryWeight * categoryMatch);
+            postScores.put(post.GetID(), score);
+        }
+
+        PriorityQueue<Post> pq = new PriorityQueue<>(
+                (a, b) -> Double.compare(postScores.get(b.GetID()), postScores.get(a.GetID()))
+        );
+        pq.addAll(posts);
+        return pq;
+    }
+
+    public static ArrayList<Post> GetPostFeed(User user, int lastID) {
+        ArrayList<Post> result = new ArrayList<>();
+        try {
+            ArrayList<Post> posts = Database.GetAllPosts();
+            if(user == null)
+                user = new User(0, "Default", "default@default.com", "", Gender.MALE, "", new Media(MediaType.IMAGE, ""), null, true);
+            PriorityQueue<Post> sorted = user.ScorePosts(posts);
+            if(lastID > 0) {
+                while (!sorted.isEmpty()) {
+                    if (sorted.poll().GetID() == lastID)
+                        break;
+                }
+            }
+            for(int i = 0; i < 10 && !sorted.isEmpty(); i++) {
+                result.add(sorted.poll());
+            }
+            return result;
+        }
+        catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return null;
+    }
+
+    public Map<String, Integer> GetFrequentCategories() {
+        try {
+            Map<String, Integer> freq = new HashMap<>();
+
+            String sql = "SELECT * FROM posts_views WHERE user_id = ?";
+            try(PreparedStatement stmt = Database.PrepareStatement(sql)) {
+                stmt.setInt(1, this.id);
+                ResultSet rs = stmt.executeQuery();
+                while(rs.next()) {
+                    Post post = Database.GetPost(rs.getInt("post_id"));
+                    ArrayList<String> categories = post.GetCategories();
+                    for(String category : categories)
+                        freq.put(category, freq.containsKey(category)? freq.get(category) + 1 : 1);
+                }
+            }
+        }
+        catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return null;
     }
 
     public void sharePost(Post post) {

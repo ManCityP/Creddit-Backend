@@ -54,12 +54,12 @@ public abstract class Database {
 
                 int postid = rs.getInt("id");
                 ArrayList<Media> media = new ArrayList<>();
-                String sql2 = "SELECT * FROM post_media ORDER BY id ASC WHERE (post_id = ?)";
+                String sql2 = "SELECT * FROM post_media WHERE (post_id = ?) ORDER BY id ASC";
                 try (PreparedStatement stmt2 = PrepareStatement(sql2)) {
                     stmt2.setInt(1, postid);
                     ResultSet rs2 = stmt2.executeQuery();
                     while (rs2.next()) {
-                        media.add(new Media(MediaType.toMediaType(rs.getString("media_type")), rs.getString("media_url")));
+                        media.add(new Media(MediaType.toMediaType(rs2.getString("media_type")), rs2.getString("media_url")));
                     }
                 }
 
@@ -73,9 +73,21 @@ public abstract class Database {
                     }
                 }
 
+                int comments = 0;
+                String sql4 = "SELECT COUNT(*) AS count FROM comments WHERE post_id = ?";
+                try (PreparedStatement stmt4 = Database.PrepareStatement(sql4)) {
+                    stmt4.setInt(1, postid);
+
+                    try (ResultSet rs4 = stmt4.executeQuery()) {
+                        if (rs4.next()) {
+                            comments = rs4.getInt("count");
+                        }
+                    }
+                }
+
                 Post p = new Post(postid, GetUser(rs.getInt("author_id")), GetSubcreddit(rs.getInt("subcreddit_id")),
                         rs.getString("title"), rs.getString("content"), media, GetPostCategories(postid),
-                        rs.getTimestamp("create_time"), rs.getTimestamp("edit_time"), votes);
+                        rs.getTimestamp("create_time"), rs.getTimestamp("edit_time"), votes, comments);
                 posts.add(p);
             }
         }
@@ -93,12 +105,12 @@ public abstract class Database {
             if (rs.next()) {
 
                 ArrayList<Media> media = new ArrayList<>();
-                String sql2 = "SELECT * FROM post_media ORDER BY id ASC WHERE (post_id = ?)";
+                String sql2 = "SELECT * FROM post_media WHERE (post_id = ?) ORDER BY id ASC";
                 try (PreparedStatement stmt2 = PrepareStatement(sql2)) {
                     stmt2.setInt(1, postid);
                     ResultSet rs2 = stmt2.executeQuery();
                     while (rs2.next()) {
-                        media.add(new Media(MediaType.toMediaType(rs.getString("media_type")), rs.getString("media_url")));
+                        media.add(new Media(MediaType.toMediaType(rs2.getString("media_type")), rs2.getString("media_url")));
                     }
                 }
 
@@ -112,9 +124,21 @@ public abstract class Database {
                     }
                 }
 
+                int comments = 0;
+                String sql4 = "SELECT COUNT(*) AS count FROM comments WHERE post_id = ?";
+                try (PreparedStatement stmt4 = Database.PrepareStatement(sql4)) {
+                    stmt4.setInt(1, postid);
+
+                    try (ResultSet rs4 = stmt4.executeQuery()) {
+                        if (rs4.next()) {
+                            comments = rs4.getInt("count");
+                        }
+                    }
+                }
+
                 return new Post(postid, GetUser(rs.getInt("author_id")), GetSubcreddit(rs.getInt("subcreddit_id")),
                         rs.getString("title"), rs.getString("content"), media, GetPostCategories(postid),
-                        rs.getTimestamp("create_time"), rs.getTimestamp("edit_time"), votes);
+                        rs.getTimestamp("create_time"), rs.getTimestamp("edit_time"), votes, comments);
             }
         }
         return null;
@@ -221,7 +245,7 @@ public abstract class Database {
     // BOOKMARK: Comments
     public static ArrayList<Comment> GetAllComments(int postid) throws SQLException {
         ArrayList<Comment> comments = new ArrayList<>();
-        String sql = "SELECT * FROM comments ORDER BY id DESC WHERE (post_id = ?)";
+        String sql = "SELECT * FROM comments WHERE (post_id = ?) ORDER BY id DESC";
 
         try (PreparedStatement stmt = PrepareStatement(sql)) {
             stmt.setInt(1, postid);
