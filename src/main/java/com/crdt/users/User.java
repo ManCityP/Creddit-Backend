@@ -29,8 +29,8 @@ public class User implements Reportable {
             return;
         if(!email.matches("^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$") || email.length() > 255)
             return;
-        if (password == null || password.length() < 8 || password.length() > 32)
-            return;
+        /*if (password == null || password.length() < 8 || password.length() > 32)
+            return;*/
         if (gender == null)
             return;
 
