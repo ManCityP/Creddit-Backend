@@ -333,6 +333,70 @@ public class Server {
             }
         });
 
+        // Route: Get all user's subcreddits
+        post("/user/subcreddits", (req, res) -> {
+            User user = gson.fromJson(req.body(), User.class);
+            ArrayList<Subcreddit> subcreddits = user.GetSubcreddits();
+            res.type("application/json");
+            return gson.toJson(subcreddits);
+        });
+
+        // Route: Check the user's vote for a post
+        post("/user/checkvote", (req, res) -> {
+            JsonObject json = gson.fromJson(req.body(), JsonObject.class);
+            User user = gson.fromJson(json.get("user"), User.class);
+            Post post = gson.fromJson(json.get("post"), Post.class);
+            int vote = user.CheckVote(post);
+            res.type("application/json");
+            return gson.toJson(vote);
+        });
+
+        // Route: Get user's friends
+        post("/friends", (req, res) -> {
+            User user = gson.fromJson(req.body(), User.class);
+            ArrayList<User> users = user.GetFriends();
+            res.type("application/json");
+            return gson.toJson(users);
+        });
+
+        // Route: Get user's sent friend requests
+        post("/friends/sent", (req, res) -> {
+            User user = gson.fromJson(req.body(), User.class);
+            ArrayList<User> users = user.GetSentFriendRequests();
+            res.type("application/json");
+            return gson.toJson(users);
+        });
+
+        // Route: Get user's received friend requests
+        post("/friends/received", (req, res) -> {
+            User user = gson.fromJson(req.body(), User.class);
+            ArrayList<User> users = user.GetReceivedFriendRequests();
+            res.type("application/json");
+            return gson.toJson(users);
+        });
+
+        // Route: Get user's private message feed
+        post("/pm/feed", (req, res) -> {
+            JsonObject json = gson.fromJson(req.body(), JsonObject.class);
+            User user1 = gson.fromJson(json.get("user1"), User.class);
+            User user2 = gson.fromJson(json.get("user2"), User.class);
+            int lastMessageID = gson.fromJson(json.get("lastID"), int.class);
+            ArrayList<Message> messages = user1.GetPrivateMessageFeed(user2, lastMessageID);
+            res.type("application/json");
+            return gson.toJson(messages);
+        });
+
+        // Route: Get user's private message feed
+        post("/pm/update", (req, res) -> {
+            JsonObject json = gson.fromJson(req.body(), JsonObject.class);
+            User user1 = gson.fromJson(json.get("user1"), User.class);
+            User user2 = gson.fromJson(json.get("user2"), User.class);
+            int lastMessageID = gson.fromJson(json.get("lastID"), int.class);
+            ArrayList<Message> messages = user1.GetLatestPrivateMessages(user2, lastMessageID);
+            res.type("application/json");
+            return gson.toJson(messages);
+        });
+
         // Route: Get a specific user
         get("/user", (req, res) -> {
             int id = Integer.parseInt(req.queryParams("id"));
@@ -355,60 +419,6 @@ public class Server {
             ArrayList<User> users = Database.GetAllUsers();
             res.type("application/json");
             return gson.toJson(users);
-        });
-
-        // Route: Get all user's subcreddits
-        get("/user/subcreddits", (req, res) -> {
-            User user = gson.fromJson(req.body(), User.class);
-            ArrayList<Subcreddit> subcreddits = user.GetSubcreddits();
-            res.type("application/json");
-            return gson.toJson(subcreddits);
-        });
-
-        // Route: Get user's friends
-        get("/friends", (req, res) -> {
-            User user = gson.fromJson(req.body(), User.class);
-            ArrayList<User> users = user.GetFriends();
-            res.type("application/json");
-            return gson.toJson(users);
-        });
-
-        // Route: Get user's sent friend requests
-        get("/friends/sent", (req, res) -> {
-            User user = gson.fromJson(req.body(), User.class);
-            ArrayList<User> users = user.GetSentFriendRequests();
-            res.type("application/json");
-            return gson.toJson(users);
-        });
-
-        // Route: Get user's received friend requests
-        get("/friends/received", (req, res) -> {
-            User user = gson.fromJson(req.body(), User.class);
-            ArrayList<User> users = user.GetReceivedFriendRequests();
-            res.type("application/json");
-            return gson.toJson(users);
-        });
-
-        // Route: Get user's private message feed
-        get("/pm/feed", (req, res) -> {
-            JsonObject json = gson.fromJson(req.body(), JsonObject.class);
-            User user1 = gson.fromJson(json.get("user1"), User.class);
-            User user2 = gson.fromJson(json.get("user2"), User.class);
-            int lastMessageID = gson.fromJson(json.get("lastID"), int.class);
-            ArrayList<Message> messages = user1.GetPrivateMessageFeed(user2, lastMessageID);
-            res.type("application/json");
-            return gson.toJson(messages);
-        });
-
-        // Route: Get user's private message feed
-        get("/pm/update", (req, res) -> {
-            JsonObject json = gson.fromJson(req.body(), JsonObject.class);
-            User user1 = gson.fromJson(json.get("user1"), User.class);
-            User user2 = gson.fromJson(json.get("user2"), User.class);
-            int lastMessageID = gson.fromJson(json.get("lastID"), int.class);
-            ArrayList<Message> messages = user1.GetLatestPrivateMessages(user2, lastMessageID);
-            res.type("application/json");
-            return gson.toJson(messages);
         });
 
 
@@ -565,6 +575,23 @@ public class Server {
             }
         });
 
+        // Route: Get subcreddit bans
+        post("/subcreddit/bans", (req, res) -> {
+            Subcreddit subcreddit = gson.fromJson(req.body(), Subcreddit.class);
+            ArrayList<User> bannedMembers = subcreddit.GetBannedMembers();
+            res.type("application/json");
+            return gson.toJson(bannedMembers);
+        });
+
+        // Route: Get subcreddit bans
+        post("/subcreddit/verifymod", (req, res) -> {
+            JsonObject json = gson.fromJson(req.body(), JsonObject.class);
+            Moderator moderator = gson.fromJson(json.get("moderator"), Moderator.class);
+            Subcreddit sub = gson.fromJson(json.get("subcreddit"), Subcreddit.class);
+            res.type("application/json");
+            return gson.toJson(moderator.VerifyModeration(sub));
+        });
+
         // Route: Get a specific subcreddit
         get("/subcreddit", (req, res) -> {
             int id = Integer.parseInt(req.queryParams("id"));
@@ -578,23 +605,6 @@ public class Server {
             ArrayList<Subcreddit> subcreddits = Database.GetAllSubcreddits();
             res.type("application/json");
             return gson.toJson(subcreddits);
-        });
-
-        // Route: Get subcreddit bans
-        get("/subcreddit/bans", (req, res) -> {
-            Subcreddit subcreddit = gson.fromJson(req.body(), Subcreddit.class);
-            ArrayList<User> bannedMembers = subcreddit.GetBannedMembers();
-            res.type("application/json");
-            return gson.toJson(bannedMembers);
-        });
-
-        // Route: Get subcreddit bans
-        get("/subcreddit/verifymod", (req, res) -> {
-            JsonObject json = gson.fromJson(req.body(), JsonObject.class);
-            Moderator moderator = gson.fromJson(json.get("moderator"), Moderator.class);
-            Subcreddit sub = gson.fromJson(json.get("subcreddit"), Subcreddit.class);
-            res.type("application/json");
-            return gson.toJson(moderator.VerifyModeration(sub));
         });
 
 

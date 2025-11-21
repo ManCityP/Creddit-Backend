@@ -29,19 +29,16 @@ public class Comment implements Voteable, Reportable {
         this.timeEdited = editTime;
     }
 
-    public void create() {
+    public void create() throws SQLException {
         String sql = "INSERT INTO comments (post_id, author_id, parent_id, content, media_url, media_type) VALUES (?, ?, ?, ?, ?, ?)";
-        try (PreparedStatement stmt = Database.PrepareStatement(sql)) {
-            stmt.setInt(1, this.post.GetID());
-            stmt.setInt(2, this.author.getId());
-            stmt.setInt(3, this.parent.getID());
-            stmt.setString(4, this.content);
-            stmt.setString(5, this.media.GetURL());
-            stmt.setString(6, this.media.GetType().toString());
-            stmt.executeUpdate();
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
+        PreparedStatement stmt = Database.PrepareStatement(sql);
+        stmt.setInt(1, this.post.GetID());
+        stmt.setInt(2, this.author.getId());
+        stmt.setInt(3, this.parent.getID());
+        stmt.setString(4, this.content);
+        stmt.setString(5, this.media.GetURL());
+        stmt.setString(6, this.media.GetType().toString());
+        stmt.executeUpdate();
     }
 
     public int getID() {return id;}

@@ -71,103 +71,84 @@ public class User implements Reportable {
         return str_salt + ":" + str_hash;
     }
 
-    public void register() {
+    public void register() throws SQLException {
         String sql;
         sql = "INSERT INTO users (username, email, password_hash, gender, bio, pfp) VALUES (?, ?, ?, ?, ?, ?)";
-        try (PreparedStatement stmt = Database.PrepareStatement(sql)) {
-            stmt.setString(1, this.username);
-            stmt.setString(2, this.email);
-            stmt.setString(3, HashPassword(this.password));
-            stmt.setString(4, this.gender.toString());
-            stmt.setString(5, this.bio);
-            stmt.setString(6, this.pfp.GetURL());
-            stmt.executeUpdate();
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
+        PreparedStatement stmt = Database.PrepareStatement(sql);
+        stmt.setString(1, this.username);
+        stmt.setString(2, this.email);
+        stmt.setString(3, HashPassword(this.password));
+        stmt.setString(4, this.gender.toString());
+        stmt.setString(5, this.bio);
+        stmt.setString(6, this.pfp.GetURL());
+        stmt.executeUpdate();
     }
 
-    public static User login(String s, String p) {
+    public static User login(String s, String p) throws SQLException {
         String sql = "SELECT * FROM users WHERE (username = ? OR email = ?)";
-        try (PreparedStatement stmt = Database.PrepareStatement(sql)) {
-            stmt.setString(1, s);
-            stmt.setString(2, s);
-            ResultSet rs = stmt.executeQuery();
-            if (rs.next()) {
-                String passwordHash = rs.getString("password_hash");
-                String pass = User.HashPassword(p, passwordHash.split(":")[0]);
-                if(!pass.equals(passwordHash))
-                    return null;
-                if(rs.getInt("admin") == 1)
-                    return new Admin(rs.getInt("id"), rs.getString("username"), rs.getString("email"), p,
-                            Gender.toGender(rs.getString("gender")), rs.getString("bio"), new Media(MediaType.IMAGE, rs.getString("pfp")),
-                            rs.getTimestamp("create_time"), rs.getInt("active") != 0);
-
-                return new User(rs.getInt("id"), rs.getString("username"), rs.getString("email"), p,
+        PreparedStatement stmt = Database.PrepareStatement(sql);
+        stmt.setString(1, s);
+        stmt.setString(2, s);
+        ResultSet rs = stmt.executeQuery();
+        if (rs.next()) {
+            String passwordHash = rs.getString("password_hash");
+            String pass = User.HashPassword(p, passwordHash.split(":")[0]);
+            if(!pass.equals(passwordHash))
+                return null;
+            if(rs.getInt("admin") == 1)
+                return new Admin(rs.getInt("id"), rs.getString("username"), rs.getString("email"), p,
                         Gender.toGender(rs.getString("gender")), rs.getString("bio"), new Media(MediaType.IMAGE, rs.getString("pfp")),
                         rs.getTimestamp("create_time"), rs.getInt("active") != 0);
-            }
-        } catch (SQLException e) {
-            e.printStackTrace();
+            return new User(rs.getInt("id"), rs.getString("username"), rs.getString("email"), p,
+                    Gender.toGender(rs.getString("gender")), rs.getString("bio"), new Media(MediaType.IMAGE, rs.getString("pfp")),
+                    rs.getTimestamp("create_time"), rs.getInt("active") != 0);
         }
         return null;
     }
 
-    public void update() {
+    public void update() throws SQLException {
         if(!this.active)
             return;
         String sql = "UPDATE users SET username = ?, password_hash = ?, bio = ?, pfp = ? WHERE id = ?";
-        try (PreparedStatement stmt = Database.PrepareStatement(sql)) {
-            stmt.setString(1, this.username);
-            stmt.setString(2, HashPassword(this.password));
-            stmt.setString(3, this.bio);
-            stmt.setString(4, this.pfp.GetURL());
-            stmt.setInt(5, this.id);
-            stmt.executeUpdate();
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
+        PreparedStatement stmt = Database.PrepareStatement(sql);
+        stmt.setString(1, this.username);
+        stmt.setString(2, HashPassword(this.password));
+        stmt.setString(3, this.bio);
+        stmt.setString(4, this.pfp.GetURL());
+        stmt.setInt(5, this.id);
+        stmt.executeUpdate();
     }
 
-    public void delete() {
+    public void delete() throws SQLException {
         if(!this.active)
             return;
         String sql = "UPDATE users SET active = 0 WHERE id = ?";
-        try (PreparedStatement stmt = Database.PrepareStatement(sql)) {
-            stmt.setInt(1, this.id);
-            stmt.executeUpdate();
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
+        PreparedStatement stmt = Database.PrepareStatement(sql);
+        stmt.setInt(1, this.id);
+        stmt.executeUpdate();
     }
 
-    public void activate() { //todo put in admin
+    public void activate() throws SQLException { //todo put in admin
         if(this.active)
             return;
         String sql = "UPDATE users SET active = 1 WHERE id = ?";
-        try (PreparedStatement stmt = Database.PrepareStatement(sql)) {
-            stmt.setInt(1, this.id);
-            stmt.executeUpdate();
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
+        PreparedStatement stmt = Database.PrepareStatement(sql);
+        stmt.setInt(1, this.id);
+        stmt.executeUpdate();
     }
 
-    public void viewPost(Post post) {
+    public void viewPost(Post post) throws SQLException {
         if(!this.active || post == null || post.GetID() <= 0)
             return;
         String sql = "INSERT INTO posts_views (post_id, user_id) VALUES (?, ?) ON DUPLICATE KEY UPDATE view_time = VALUES(?)";
-        try (PreparedStatement stmt = Database.PrepareStatement(sql)) {
-            stmt.setInt(1, post.GetID());
-            stmt.setInt(2, this.id);
-            stmt.setTimestamp(3, Timestamp.from(Instant.now()));
-            stmt.executeUpdate();
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
+        PreparedStatement stmt = Database.PrepareStatement(sql);
+        stmt.setInt(1, post.GetID());
+        stmt.setInt(2, this.id);
+        stmt.setTimestamp(3, Timestamp.from(Instant.now()));
+        stmt.executeUpdate();
     }
 
-    private PriorityQueue<Post> ScorePosts(ArrayList<Post> posts) {
+    private PriorityQueue<Post> ScorePosts(ArrayList<Post> posts) throws SQLException {
         Map<Integer, Double> postScores = new LinkedHashMap<>();
         ArrayList<Subcreddit> subs = new ArrayList<>();
         ArrayList<User> followers = new ArrayList<>();
@@ -235,24 +216,17 @@ public class User implements Reportable {
         return null;
     }
 
-    public Map<String, Integer> GetFrequentCategories() {
-        try {
-            Map<String, Integer> freq = new HashMap<>();
-
-            String sql = "SELECT * FROM posts_views WHERE user_id = ?";
-            try(PreparedStatement stmt = Database.PrepareStatement(sql)) {
-                stmt.setInt(1, this.id);
-                ResultSet rs = stmt.executeQuery();
-                while(rs.next()) {
-                    Post post = Database.GetPost(rs.getInt("post_id"));
-                    ArrayList<String> categories = post.GetCategories();
-                    for(String category : categories)
-                        freq.put(category, freq.containsKey(category)? freq.get(category) + 1 : 1);
-                }
-            }
-        }
-        catch (SQLException e) {
-            e.printStackTrace();
+    public Map<String, Integer> GetFrequentCategories() throws SQLException {
+        Map<String, Integer> freq = new HashMap<>();
+        String sql = "SELECT * FROM posts_views WHERE user_id = ?";
+        PreparedStatement stmt = Database.PrepareStatement(sql);
+        stmt.setInt(1, this.id);
+        ResultSet rs = stmt.executeQuery();
+        while(rs.next()) {
+            Post post = Database.GetPost(rs.getInt("post_id"));
+            ArrayList<String> categories = post.GetCategories();
+            for(String category : categories)
+                freq.put(category, freq.containsKey(category)? freq.get(category) + 1 : 1);
         }
         return null;
     }
@@ -265,139 +239,113 @@ public class User implements Reportable {
         //TODO wainting for Meho (Meho here, this can wait for next update, also "wainting" ;) )
     }
 
-    public void joinSubcreddit(Subcreddit subcreddit) {
+    public void joinSubcreddit(Subcreddit subcreddit) throws SQLException {
         //TODO: Check if you are banned from the subcreddit
         if(!this.active || subcreddit == null || subcreddit.GetSubId() <= 0)
             return;
         String sql = "INSERT INTO subcreddit_members (user_id, subcreddit_id, accepted) VALUES (?, ?, ?)";
-        try (PreparedStatement stmt = Database.PrepareStatement(sql)) {
-            stmt.setInt(1, this.id);
-            stmt.setInt(2, subcreddit.GetSubId());
-            stmt.setInt(3, subcreddit.GetPrivate()? 0 : 1);
-            stmt.executeUpdate();
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
+        PreparedStatement stmt = Database.PrepareStatement(sql);
+        stmt.setInt(1, this.id);
+        stmt.setInt(2, subcreddit.GetSubId());
+        stmt.setInt(3, subcreddit.GetPrivate()? 0 : 1);
+        stmt.executeUpdate();
     }
 
-    public void leaveSubcreddit(Subcreddit subcreddit) {
+    public void leaveSubcreddit(Subcreddit subcreddit) throws SQLException {
         if(!this.active || subcreddit == null || subcreddit.GetSubId() <= 0)
             return;
         String sql = "DELETE FROM subcreddit_members WHERE (user_id = ? AND subcreddit_id = ?)";
-        try (PreparedStatement stmt = Database.PrepareStatement(sql)) {
-            stmt.setInt(1, this.id);
-            stmt.setInt(2, subcreddit.GetSubId());
-            stmt.executeUpdate();
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
+        PreparedStatement stmt = Database.PrepareStatement(sql);
+        stmt.setInt(1, this.id);
+        stmt.setInt(2, subcreddit.GetSubId());
+        stmt.executeUpdate();
     }
 
-    public ArrayList<Subcreddit> GetSubcreddits() {
+    public ArrayList<Subcreddit> GetSubcreddits() throws SQLException {
         ArrayList<Subcreddit> subcreddits = new ArrayList<>();
-        String sql = "SELECT * FROM subcreddit_members ORDER BY id DESC WHERE (accepted = 1 AND user_id = ?)";
 
-        try (PreparedStatement stmt = Database.PrepareStatement(sql)) {
-            stmt.setInt(1, this.id);
-            ResultSet rs = stmt.executeQuery();
-            while (rs.next()) {
-                subcreddits.add(Database.GetSubcreddit(rs.getInt("subcreddit_id")));
-            }
-        } catch (SQLException e) {
-            e.printStackTrace();
+        String sql = "SELECT * FROM subcreddit_members WHERE (accepted = 1 AND user_id = ?) ORDER BY create_time DESC";
+        PreparedStatement stmt = Database.PrepareStatement(sql);
+        stmt.setInt(1, this.id);
+        ResultSet rs = stmt.executeQuery();
+        while (rs.next()) {
+            subcreddits.add(Database.GetSubcreddit(rs.getInt("subcreddit_id")));
         }
         return subcreddits;
     }
 
-    public void sendFriendRequest(User user) {
+    public void sendFriendRequest(User user) throws SQLException {
         if(!this.active)
             return;
-        try {
-            int senderId = this.id;
-            int receiverId = user.id;
-            if (this.GetFriends().contains(user) || this.GetSentFriendRequests().contains(user) || this.GetReceivedFriendRequests().contains(user))
-                return;
-
-            String sql = "INSERT INTO followers (follower_id, followed_id) VALUES (?, ?)";
-            PreparedStatement stmt = Database.PrepareStatement(sql);
-            stmt.setInt(1, senderId);
-            stmt.setInt(2, receiverId);
-            stmt.executeUpdate();
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
+        int senderId = this.id;
+        int receiverId = user.id;
+        if (this.GetFriends().contains(user) || this.GetSentFriendRequests().contains(user) || this.GetReceivedFriendRequests().contains(user))
+            return;
+        String sql = "INSERT INTO followers (follower_id, followed_id) VALUES (?, ?)";
+        PreparedStatement stmt = Database.PrepareStatement(sql);
+        stmt.setInt(1, senderId);
+        stmt.setInt(2, receiverId);
+        stmt.executeUpdate();
     }
 
-    public void unfriend(User friend) {
+    public void unfriend(User friend) throws SQLException {
         if(!this.active)
             return;
         String sql = "DELETE FROM followers WHERE (follower_id = ? AND followed_id = ?) OR (follower_id = ? AND followed_id = ?)";
-        try (PreparedStatement stmt = Database.PrepareStatement(sql)) {
-            stmt.setInt(1, this.id); stmt.setInt(2, friend.id);
-            stmt.setInt(3, friend.id); stmt.setInt(4, this.id);
-            stmt.executeUpdate();
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
+        PreparedStatement stmt = Database.PrepareStatement(sql);
+        stmt.setInt(1, this.id); stmt.setInt(2, friend.id);
+        stmt.setInt(3, friend.id); stmt.setInt(4, this.id);
+        stmt.executeUpdate();
     }
 
-    public ArrayList<User> GetFriends() {
+    public ArrayList<User> GetFriends() throws SQLException {
         ArrayList<User> friends = new ArrayList<>();
         String sql = "SELECT * FROM followers WHERE accepted = 1 AND (follower_id = ? OR followed_id = ?) ORDER BY create_time DESC";
-        try (PreparedStatement stmt = Database.PrepareStatement(sql)) {
-            stmt.setInt(1, this.id);
-            stmt.setInt(2, this.id);
-            ResultSet rs = stmt.executeQuery();
-            while (rs.next()) {
-                int follower_id = rs.getInt("follower_id");
-                User user = Database.GetUser(follower_id == this.id? rs.getInt("followed_id") : follower_id);
-                if(!user.active)
-                    continue;
-                friends.add(user);
-            }
-        } catch (SQLException e) {
-            e.printStackTrace();
+        PreparedStatement stmt = Database.PrepareStatement(sql);
+        stmt.setInt(1, this.id);
+        stmt.setInt(2, this.id);
+        ResultSet rs = stmt.executeQuery();
+        while (rs.next()) {
+            int follower_id = rs.getInt("follower_id");
+            User user = Database.GetUser(follower_id == this.id? rs.getInt("followed_id") : follower_id);
+            if(!user.active)
+                continue;
+            friends.add(user);
         }
         return friends;
     }
 
-    public ArrayList<User> GetSentFriendRequests() {
+    public ArrayList<User> GetSentFriendRequests() throws SQLException {
         ArrayList<User> friends = new ArrayList<>();
         String sql = "SELECT * FROM followers WHERE accepted = 0 AND (follower_id = ?) ORDER BY create_time DESC";
-        try (PreparedStatement stmt = Database.PrepareStatement(sql)) {
-            stmt.setInt(1, this.id);
-            ResultSet rs = stmt.executeQuery();
-            while (rs.next()) {
-                User user = Database.GetUser(rs.getInt("followed_id"));
-                if(!user.active)
-                    continue;
-                friends.add(user);
-            }
-        } catch (SQLException e) {
-            e.printStackTrace();
+        PreparedStatement stmt = Database.PrepareStatement(sql);
+        stmt.setInt(1, this.id);
+        ResultSet rs = stmt.executeQuery();
+        while (rs.next()) {
+            User user = Database.GetUser(rs.getInt("followed_id"));
+            if(!user.active)
+                continue;
+            friends.add(user);
         }
         return friends;
     }
 
-    public ArrayList<User> GetReceivedFriendRequests() {
+    public ArrayList<User> GetReceivedFriendRequests() throws SQLException {
         ArrayList<User> friends = new ArrayList<>();
         String sql = "SELECT * FROM followers WHERE accepted = 0 AND (followed_id = ?) ORDER BY create_time DESC";
-        try (PreparedStatement stmt = Database.PrepareStatement(sql)) {
-            stmt.setInt(1, this.id);
-            ResultSet rs = stmt.executeQuery();
-            while (rs.next()) {
-                User user = Database.GetUser(rs.getInt("follower_id"));
-                if(!user.active)
-                    continue;
-                friends.add(user);
-            }
-        } catch (SQLException e) {
-            e.printStackTrace();
+        PreparedStatement stmt = Database.PrepareStatement(sql);
+        stmt.setInt(1, this.id);
+        ResultSet rs = stmt.executeQuery();
+        while (rs.next()) {
+            User user = Database.GetUser(rs.getInt("follower_id"));
+            if(!user.active)
+                continue;
+            friends.add(user);
         }
         return friends;
     }
 
-    public ArrayList<Message> GetPrivateMessageFeed(User friend, int lastMessageID) {
+    public ArrayList<Message> GetPrivateMessageFeed(User friend, int lastMessageID) throws SQLException {
         ArrayList<Message> messages = new ArrayList<>();
         int id1 = this.id;
         int id2 = friend.id;
@@ -406,44 +354,38 @@ public class User implements Reportable {
             sql = "SELECT * FROM messages ORDER BY id DESC WHERE (sender_id = ? AND receiver_id = ?) OR (sender_id = ? AND receiver_id = ?) AND id < ? LIMIT 20";
         else
             sql = "SELECT * FROM messages ORDER BY id DESC WHERE (sender_id = ? AND receiver_id = ?) OR (sender_id = ? AND receiver_id = ?) LIMIT 20";
-        try(PreparedStatement stmt = Database.PrepareStatement(sql)) {
-            stmt.setInt(1, id1); stmt.setInt(2, id2);
-            stmt.setInt(3, id2); stmt.setInt(4, id1);
-            if(lastMessageID > 0)
-                stmt.setInt(5, lastMessageID);
-            ResultSet rs = stmt.executeQuery();
-            while(rs.next()) {
-                int sender_id = rs.getInt("sender_id");
-                messages.add(new Message(rs.getInt("id"), sender_id == id1? this : friend, sender_id == id1? friend : this,
-                        rs.getString("content"), new Media(MediaType.toMediaType(rs.getString("media_type")), rs.getString("media_url")),
-                        rs.getTimestamp("create_time"), rs.getTimestamp("edit_time"), rs.getInt("read") != 0
-                ));
-            }
-        } catch (SQLException e) {
-            e.printStackTrace();
+        PreparedStatement stmt = Database.PrepareStatement(sql);
+        stmt.setInt(1, id1); stmt.setInt(2, id2);
+        stmt.setInt(3, id2); stmt.setInt(4, id1);
+        if(lastMessageID > 0)
+            stmt.setInt(5, lastMessageID);
+        ResultSet rs = stmt.executeQuery();
+        while(rs.next()) {
+            int sender_id = rs.getInt("sender_id");
+            messages.add(new Message(rs.getInt("id"), sender_id == id1? this : friend, sender_id == id1? friend : this,
+                    rs.getString("content"), new Media(MediaType.toMediaType(rs.getString("media_type")), rs.getString("media_url")),
+                    rs.getTimestamp("create_time"), rs.getTimestamp("edit_time"), rs.getInt("read") != 0
+            ));
         }
         return messages;
     }
 
-    public ArrayList<Message> GetLatestPrivateMessages(User friend, int lastMessageID) {
+    public ArrayList<Message> GetLatestPrivateMessages(User friend, int lastMessageID) throws SQLException {
         ArrayList<Message> messages = new ArrayList<>();
         int id1 = this.id;
         int id2 = friend.id;
         String sql = "SELECT * FROM messages ORDER BY id ASC WHERE (sender_id = ? AND receiver_id = ?) OR (sender_id = ? AND receiver_id = ?) AND id > ?";
-        try(PreparedStatement stmt = Database.PrepareStatement(sql)) {
-            stmt.setInt(1, id1); stmt.setInt(2, id2);
-            stmt.setInt(3, id2); stmt.setInt(4, id1);
-            stmt.setInt(5, lastMessageID);
-            ResultSet rs = stmt.executeQuery();
-            while(rs.next()) {
-                int sender_id = rs.getInt("sender_id");
-                messages.add(new Message(rs.getInt("id"), sender_id == id1? this : friend, sender_id == id1? friend : this,
-                        rs.getString("content"), new Media(MediaType.toMediaType(rs.getString("media_type")), rs.getString("media_url")),
-                        rs.getTimestamp("create_time"), rs.getTimestamp("edit_time"), rs.getInt("read") != 0
-                ));
-            }
-        } catch (SQLException e) {
-            e.printStackTrace();
+        PreparedStatement stmt = Database.PrepareStatement(sql);
+        stmt.setInt(1, id1); stmt.setInt(2, id2);
+        stmt.setInt(3, id2); stmt.setInt(4, id1);
+        stmt.setInt(5, lastMessageID);
+        ResultSet rs = stmt.executeQuery();
+        while(rs.next()) {
+            int sender_id = rs.getInt("sender_id");
+            messages.add(new Message(rs.getInt("id"), sender_id == id1? this : friend, sender_id == id1? friend : this,
+                    rs.getString("content"), new Media(MediaType.toMediaType(rs.getString("media_type")), rs.getString("media_url")),
+                    rs.getTimestamp("create_time"), rs.getTimestamp("edit_time"), rs.getInt("read") != 0
+            ));
         }
         return messages;
     }
@@ -452,53 +394,59 @@ public class User implements Reportable {
         //TODO wainting for Meho
     }
 
-    public void vote(Voteable voteable, int voteValue) { // voteValue -> {1: upvote, -1: downvote, 0: remove vote}
+    public void vote(Voteable voteable, int voteValue) throws SQLException { // voteValue -> {1: upvote, -1: downvote, 0: remove vote}
         if(!this.active || voteable == null || (voteValue != -1 && voteValue != 1 && voteValue != 0))
             return;
-        try {
-            if (voteable instanceof Post) {
-                Post post = (Post) voteable;
-                if (post.GetID() <= 0)
-                    return;
-                if (voteValue == 0) {
-                    String sql = "DELETE FROM votes_posts WHERE (user_id = ? AND post_id = ?)";
-                    PreparedStatement stmt = Database.PrepareStatement(sql);
-                    stmt.setInt(1, this.id);
-                    stmt.setInt(2, post.GetID());
-                    stmt.executeUpdate();
-                    return;
-                }
-                String sql = "INSERT INTO votes_posts (user_id, post_id, value) VALUES (?, ?, ?) ON DUPLICATE KEY UPDATE value = VALUES(?)";
+        if (voteable instanceof Post) {
+            Post post = (Post) voteable;
+            if (post.GetID() <= 0)
+                return;
+            if (voteValue == 0) {
+                String sql = "DELETE FROM votes_posts WHERE (user_id = ? AND post_id = ?)";
                 PreparedStatement stmt = Database.PrepareStatement(sql);
                 stmt.setInt(1, this.id);
                 stmt.setInt(2, post.GetID());
-                stmt.setInt(3, voteValue);
-                stmt.setInt(4, voteValue);
                 stmt.executeUpdate();
+                return;
             }
-            else if(voteable instanceof Comment) {
-                Comment comment = (Comment) voteable;
-                if (comment.getID() <= 0)
-                    return;
-                if (voteValue == 0) {
-                    String sql = "DELETE FROM votes_comments WHERE (user_id = ? AND comment_id = ?)";
-                    PreparedStatement stmt = Database.PrepareStatement(sql);
-                    stmt.setInt(1, this.id);
-                    stmt.setInt(2, comment.getID());
-                    stmt.executeUpdate();
-                    return;
-                }
-                String sql = "INSERT INTO votes_comments (user_id, comment_id, value) VALUES (?, ?, ?) ON DUPLICATE KEY UPDATE value = VALUES(?)";
+            String sql = "INSERT INTO votes_posts (user_id, post_id, value) VALUES (?, ?, ?) ON DUPLICATE KEY UPDATE value = VALUES(value)";
+            PreparedStatement stmt = Database.PrepareStatement(sql);
+            stmt.setInt(1, this.id);
+            stmt.setInt(2, post.GetID());
+            stmt.setInt(3, voteValue);
+            stmt.executeUpdate();
+        }
+        else if(voteable instanceof Comment) {
+            Comment comment = (Comment) voteable;
+            if (comment.getID() <= 0)
+                return;
+            if (voteValue == 0) {
+                String sql = "DELETE FROM votes_comments WHERE (user_id = ? AND comment_id = ?)";
                 PreparedStatement stmt = Database.PrepareStatement(sql);
                 stmt.setInt(1, this.id);
                 stmt.setInt(2, comment.getID());
-                stmt.setInt(3, voteValue);
-                stmt.setInt(4, voteValue);
                 stmt.executeUpdate();
+                return;
             }
-        } catch (SQLException e) {
-            e.printStackTrace();
+            String sql = "INSERT INTO votes_comments (user_id, comment_id, value) VALUES (?, ?, ?) ON DUPLICATE KEY UPDATE value = VALUES(value)";
+            PreparedStatement stmt = Database.PrepareStatement(sql);
+            stmt.setInt(1, this.id);
+            stmt.setInt(2, comment.getID());
+            stmt.setInt(3, voteValue);
+            stmt.executeUpdate();
         }
+    }
+
+    public int CheckVote(Post post) throws SQLException {
+        String sql = "SELECT * FROM votes_posts WHERE (user_id = ? AND post_id = ?)";
+        PreparedStatement stmt = Database.PrepareStatement(sql);
+        stmt.setInt(1, this.id);
+        stmt.setInt(2, post.GetID());
+        ResultSet rs = stmt.executeQuery();
+        if(rs.next()) {
+            return rs.getInt("value");
+        }
+        return 0;
     }
 
     //TODO: Setters will probably be useless, waiting to be removed.

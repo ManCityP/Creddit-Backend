@@ -40,43 +40,36 @@ public class Post implements Voteable, Reportable {
         this.comments = comments;
     }
 
-    public void create() {
+    public void create() throws SQLException {
         //TODO: INSERT MEDIA IN post_media table
-        try {
-            if(this.categories != null) {
-                for (String category : this.categories) {
-                    int categoryID = Database.CategoryExists(category);
-                    if (categoryID == 0)
-                        categoryID = Database.InsertCategory(category.toLowerCase());
-                    String sql = "INSERT INTO post_categories (post_id, category_id) VALUES (?, ?)";
-                    PreparedStatement stmt = Database.PrepareStatement(sql);
-                    stmt.setInt(1, this.id);
-                    stmt.setInt(2, categoryID);
-                    stmt.executeUpdate();
-                }
+        if(this.categories != null) {
+            for (String category : this.categories) {
+                int categoryID = Database.CategoryExists(category);
+                if (categoryID == 0)
+                    categoryID = Database.InsertCategory(category.toLowerCase());
+                if(categoryID == 0)
+                    return;
+                String sql = "INSERT INTO post_categories (post_id, category_id) VALUES (?, ?)";
+                PreparedStatement stmt = Database.PrepareStatement(sql);
+                stmt.setInt(1, this.id);
+                stmt.setInt(2, categoryID);
+                stmt.executeUpdate();
             }
-
-            String sql = "INSERT INTO posts (author_id, subcreddit_id, title, content) VALUES (?, ?, ?, ?)";
-            PreparedStatement stmt = Database.PrepareStatement(sql);
-            stmt.setInt(1, this.author.getId());
-            stmt.setInt(2, this.subcreddit == null? 0 : this.subcreddit.GetSubId());
-            stmt.setString(3, this.title);
-            stmt.setString(4, this.content);
-            stmt.executeUpdate();
-        } catch (SQLException e) {
-            e.printStackTrace();
         }
+        String sql = "INSERT INTO posts (author_id, subcreddit_id, title, content) VALUES (?, ?, ?, ?)";
+        PreparedStatement stmt = Database.PrepareStatement(sql);
+        stmt.setInt(1, this.author.getId());
+        stmt.setInt(2, this.subcreddit == null? 0 : this.subcreddit.GetSubId());
+        stmt.setString(3, this.title);
+        stmt.setString(4, this.content);
+        stmt.executeUpdate();
     }
 
-    public void delete() {
-        try {
-            String sql = "DELETE FROM posts WHERE id = ?";
-            PreparedStatement stmt = Database.PrepareStatement(sql);
-            stmt.setInt(1, this.id);
-            stmt.executeUpdate();
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
+    public void delete() throws SQLException {
+        String sql = "DELETE FROM posts WHERE id = ?";
+        PreparedStatement stmt = Database.PrepareStatement(sql);
+        stmt.setInt(1, this.id);
+        stmt.executeUpdate();
     }
 
     public int GetID() {

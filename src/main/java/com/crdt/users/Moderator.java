@@ -15,7 +15,7 @@ public class Moderator extends User {
         super(id, userName, email, password, gender, bio, profileMedia, joinDate, active);
     }
 
-    public void BanMember(User user, Subcreddit subcreddit, String reason) {
+    public void BanMember(User user, Subcreddit subcreddit, String reason) throws SQLException {
         if(user.id <= 0)
             return;
         boolean global = (subcreddit == null);
@@ -23,20 +23,17 @@ public class Moderator extends User {
             if(!VerifyModeration(subcreddit))
                 return;
         String sql = "INSERT INTO bans (user_id, banned_by, subcreddit_id, reason) VALUES (?, ?, ?, ?)";
-        try (PreparedStatement stmt = Database.PrepareStatement(sql)) {
-            stmt.setInt(1, user.id);
-            stmt.setInt(2, this.id);
-            stmt.setInt(3, global? 0 : subcreddit.GetSubId());
-            stmt.setString(4, reason);
-            stmt.executeUpdate();
-            if(!global)
-                user.leaveSubcreddit(subcreddit);
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
+        PreparedStatement stmt = Database.PrepareStatement(sql);
+        stmt.setInt(1, user.id);
+        stmt.setInt(2, this.id);
+        stmt.setInt(3, global? 0 : subcreddit.GetSubId());
+        stmt.setString(4, reason);
+        stmt.executeUpdate();
+        if(!global)
+            user.leaveSubcreddit(subcreddit);
     }
 
-    public void UnbanMember(User user, Subcreddit subcreddit) {
+    public void UnbanMember(User user, Subcreddit subcreddit) throws SQLException {
         if(user.id <= 0)
             return;
         boolean global = (subcreddit == null);
@@ -44,32 +41,26 @@ public class Moderator extends User {
             if(!VerifyModeration(subcreddit))
                 return;
         String sql = "DELETE FROM bans WHERE (user_id = ? AND subcreddit_id = ?)";
-        try (PreparedStatement stmt = Database.PrepareStatement(sql)) {
-            stmt.setInt(1, user.id);
-            stmt.setInt(2, global? 0 : subcreddit.GetSubId());
-            stmt.executeUpdate();
-            if(!global)
-                user.joinSubcreddit(subcreddit);
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
+        PreparedStatement stmt = Database.PrepareStatement(sql);
+        stmt.setInt(1, user.id);
+        stmt.setInt(2, global? 0 : subcreddit.GetSubId());
+        stmt.executeUpdate();
+        if(!global)
+            user.joinSubcreddit(subcreddit);
     }
 
-    public boolean VerifyModeration(Subcreddit subcreddit) {
+    public boolean VerifyModeration(Subcreddit subcreddit) throws SQLException {
         if(subcreddit.GetSubId() <= 0)
             return false;
 
         String sql = "SELECT * FROM subcreddit_moderators WHERE (subcreddit_id = ? AND user_id = ?)";
 
-        try (PreparedStatement stmt = Database.PrepareStatement(sql)) {
-            stmt.setInt(1, subcreddit.GetSubId());
-            stmt.setInt(2, this.id);
-            ResultSet rs = stmt.executeQuery();
-            if(rs.next())
-                return true;
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
+        PreparedStatement stmt = Database.PrepareStatement(sql);
+        stmt.setInt(1, subcreddit.GetSubId());
+        stmt.setInt(2, this.id);
+        ResultSet rs = stmt.executeQuery();
+        if(rs.next())
+            return true;
         return false;
     }
 }

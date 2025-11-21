@@ -27,62 +27,50 @@ public class Subcreddit {
         this.subLogo = logo;
     }
 
-    public void create() {
+    public void create() throws SQLException {
         String sql = "INSERT INTO subcreddits (name, description, creator_id, logo, private) VALUES (?, ?, ?, ?, ?)";
-        try (PreparedStatement stmt = Database.PrepareStatement(sql)) {
-            stmt.setString(1, this.name);
-            stmt.setString(2, this.description);
-            stmt.setInt(3, this.creator.getId());
-            stmt.setString(4, this.subLogo.GetURL());
-            stmt.setInt(5, this.isPrivate? 1 : 0);
-            stmt.executeUpdate();
-            this.creator.joinSubcreddit(this);
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
+        PreparedStatement stmt = Database.PrepareStatement(sql);
+        stmt.setString(1, this.name);
+        stmt.setString(2, this.description);
+        stmt.setInt(3, this.creator.getId());
+        stmt.setString(4, this.subLogo.GetURL());
+        stmt.setInt(5, this.isPrivate? 1 : 0);
+        stmt.executeUpdate();
+        this.creator.joinSubcreddit(this);
     }
 
-    public void delete() {
+    public void delete() throws SQLException {
         String sql = "DELETE FROM subcreddits WHERE id = ?";
-        try (PreparedStatement stmt = Database.PrepareStatement(sql)) {
-            stmt.setInt(1, this.id);
-            stmt.executeUpdate();
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
+        PreparedStatement stmt = Database.PrepareStatement(sql);
+        stmt.setInt(1, this.id);
+        stmt.executeUpdate();
     }
 
-    public ArrayList<User> GetMembers() {
+    public ArrayList<User> GetMembers() throws SQLException {
         ArrayList<User> members = new ArrayList<>();
         String sql = "SELECT * FROM subcreddit_members ORDER BY id DESC WHERE (accepted = 1 AND subcreddit_id = ?)";
 
-        try (PreparedStatement stmt = Database.PrepareStatement(sql)) {
-            stmt.setInt(1, this.id);
-            ResultSet rs = stmt.executeQuery();
-            while (rs.next()) {
-                members.add(Database.GetUser(rs.getInt("user_id")));
-            }
-        } catch (SQLException e) {
-            e.printStackTrace();
+        PreparedStatement stmt = Database.PrepareStatement(sql);
+        stmt.setInt(1, this.id);
+        ResultSet rs = stmt.executeQuery();
+        while (rs.next()) {
+            members.add(Database.GetUser(rs.getInt("user_id")));
         }
         return members;
     }
 
-    public ArrayList<User> GetBannedMembers() {
+    public ArrayList<User> GetBannedMembers() throws SQLException {
         if(this.id <= 0)
             return null;
 
         ArrayList<User> bannedMembers = new ArrayList<>();
         String sql = "SELECT * FROM bans ORDER BY id DESC WHERE (subcreddit_id = ?)";
 
-        try (PreparedStatement stmt = Database.PrepareStatement(sql)) {
-            stmt.setInt(1, this.id);
-            ResultSet rs = stmt.executeQuery();
-            while (rs.next()) {
-                bannedMembers.add(Database.GetUser(rs.getInt("user_id")));
-            }
-        } catch (SQLException e) {
-            e.printStackTrace();
+        PreparedStatement stmt = Database.PrepareStatement(sql);
+        stmt.setInt(1, this.id);
+        ResultSet rs = stmt.executeQuery();
+        while (rs.next()) {
+            bannedMembers.add(Database.GetUser(rs.getInt("user_id")));
         }
         return bannedMembers;
     }

@@ -34,62 +34,54 @@ public abstract class Database {
     // BOOKMARK: Posts
     public static int InsertCategory(String category) throws SQLException {
         String sql = "INSERT INTO categories (name) VALUES (?)";
-        try (PreparedStatement stmt = PrepareStatement(sql)) {
-            stmt.setString(1, category.toLowerCase());
-            stmt.executeUpdate();
-            try (ResultSet rs = stmt.getGeneratedKeys()) {
-                if (rs.next())
-                    return rs.getInt("id");
-            }
-        }
+        PreparedStatement stmt = PrepareStatement(sql);
+        stmt.setString(1, category.toLowerCase());
+        stmt.executeUpdate();
+        ResultSet rs = stmt.getGeneratedKeys();
+        if (rs.next())
+            return rs.getInt("id");
         return 0;
     }
 
     public static ArrayList<Post> GetAllPosts() throws SQLException {
         ArrayList<Post> posts = new ArrayList<>();
         String sql = "SELECT * FROM posts ORDER BY id DESC";
-        try (PreparedStatement stmt = PrepareStatement(sql);
-             ResultSet rs = stmt.executeQuery()) {
-            while (rs.next()) {
+        PreparedStatement stmt = PrepareStatement(sql);
+        ResultSet rs = stmt.executeQuery();
+        while (rs.next()) {
+            int postid = rs.getInt("id");
+            ArrayList<Media> media = new ArrayList<>();
 
-                int postid = rs.getInt("id");
-                ArrayList<Media> media = new ArrayList<>();
-                String sql2 = "SELECT * FROM post_media WHERE (post_id = ?) ORDER BY id ASC";
-                try (PreparedStatement stmt2 = PrepareStatement(sql2)) {
-                    stmt2.setInt(1, postid);
-                    ResultSet rs2 = stmt2.executeQuery();
-                    while (rs2.next()) {
-                        media.add(new Media(MediaType.toMediaType(rs2.getString("media_type")), rs2.getString("media_url")));
-                    }
-                }
-
-                int votes = 0;
-                String sql3 = "SELECT * FROM votes_posts WHERE (post_id = ?)";
-                try (PreparedStatement stmt3 = PrepareStatement(sql3)) {
-                    stmt3.setInt(1, postid);
-                    ResultSet rs3 = stmt3.executeQuery();
-                    while(rs3.next()) {
-                        votes += rs3.getInt("value");
-                    }
-                }
-
-                int comments = 0;
-                String sql4 = "SELECT COUNT(*) AS count FROM comments WHERE post_id = ?";
-                try (PreparedStatement stmt4 = Database.PrepareStatement(sql4)) {
-                    stmt4.setInt(1, postid);
-
-                    try (ResultSet rs4 = stmt4.executeQuery()) {
-                        if (rs4.next()) {
-                            comments = rs4.getInt("count");
-                        }
-                    }
-                }
-
-                Post p = new Post(postid, GetUser(rs.getInt("author_id")), GetSubcreddit(rs.getInt("subcreddit_id")),
-                        rs.getString("title"), rs.getString("content"), media, GetPostCategories(postid),
-                        rs.getTimestamp("create_time"), rs.getTimestamp("edit_time"), votes, comments);
-                posts.add(p);
+            String sql2 = "SELECT * FROM post_media WHERE (post_id = ?) ORDER BY id ASC";
+            PreparedStatement stmt2 = PrepareStatement(sql2);
+            stmt2.setInt(1, postid);
+            ResultSet rs2 = stmt2.executeQuery();
+            while (rs2.next()) {
+                media.add(new Media(MediaType.toMediaType(rs2.getString("media_type")), rs2.getString("media_url")));
             }
+
+            int votes = 0;
+            String sql3 = "SELECT * FROM votes_posts WHERE (post_id = ?)";
+            PreparedStatement stmt3 = PrepareStatement(sql3);
+            stmt3.setInt(1, postid);
+            ResultSet rs3 = stmt3.executeQuery();
+            while(rs3.next()) {
+                votes += rs3.getInt("value");
+            }
+
+            int comments = 0;
+            String sql4 = "SELECT COUNT(*) AS count FROM comments WHERE post_id = ?";
+            PreparedStatement stmt4 = Database.PrepareStatement(sql4);
+            stmt4.setInt(1, postid);
+            ResultSet rs4 = stmt4.executeQuery();
+            if (rs4.next()) {
+                comments = rs4.getInt("count");
+
+            }
+            Post p = new Post(postid, GetUser(rs.getInt("author_id")), GetSubcreddit(rs.getInt("subcreddit_id")),
+                    rs.getString("title"), rs.getString("content"), media, GetPostCategories(postid),
+                    rs.getTimestamp("create_time"), rs.getTimestamp("edit_time"), votes, comments);
+            posts.add(p);
         }
         return posts;
     }
@@ -99,47 +91,40 @@ public abstract class Database {
             return null;
 
         String sql = "SELECT * FROM posts WHERE (id = ?)";
-        try (PreparedStatement stmt = PrepareStatement(sql)) {
-            stmt.setInt(1, postid);
-            ResultSet rs = stmt.executeQuery();
-            if (rs.next()) {
-
-                ArrayList<Media> media = new ArrayList<>();
-                String sql2 = "SELECT * FROM post_media WHERE (post_id = ?) ORDER BY id ASC";
-                try (PreparedStatement stmt2 = PrepareStatement(sql2)) {
-                    stmt2.setInt(1, postid);
-                    ResultSet rs2 = stmt2.executeQuery();
-                    while (rs2.next()) {
-                        media.add(new Media(MediaType.toMediaType(rs2.getString("media_type")), rs2.getString("media_url")));
-                    }
-                }
-
-                int votes = 0;
-                String sql3 = "SELECT * FROM votes_posts WHERE (post_id = ?)";
-                try (PreparedStatement stmt3 = PrepareStatement(sql3)) {
-                    stmt3.setInt(1, postid);
-                    ResultSet rs3 = stmt3.executeQuery();
-                    while(rs3.next()) {
-                        votes += rs3.getInt("value");
-                    }
-                }
-
-                int comments = 0;
-                String sql4 = "SELECT COUNT(*) AS count FROM comments WHERE post_id = ?";
-                try (PreparedStatement stmt4 = Database.PrepareStatement(sql4)) {
-                    stmt4.setInt(1, postid);
-
-                    try (ResultSet rs4 = stmt4.executeQuery()) {
-                        if (rs4.next()) {
-                            comments = rs4.getInt("count");
-                        }
-                    }
-                }
-
-                return new Post(postid, GetUser(rs.getInt("author_id")), GetSubcreddit(rs.getInt("subcreddit_id")),
-                        rs.getString("title"), rs.getString("content"), media, GetPostCategories(postid),
-                        rs.getTimestamp("create_time"), rs.getTimestamp("edit_time"), votes, comments);
+        PreparedStatement stmt = PrepareStatement(sql);
+        stmt.setInt(1, postid);
+        ResultSet rs = stmt.executeQuery();
+        if (rs.next()) {
+            ArrayList<Media> media = new ArrayList<>();
+            String sql2 = "SELECT * FROM post_media WHERE (post_id = ?) ORDER BY id ASC";
+            PreparedStatement stmt2 = PrepareStatement(sql2);
+            stmt2.setInt(1, postid);
+            ResultSet rs2 = stmt2.executeQuery();
+            while (rs2.next()) {
+                media.add(new Media(MediaType.toMediaType(rs2.getString("media_type")), rs2.getString("media_url")));
             }
+
+            int votes = 0;
+            String sql3 = "SELECT * FROM votes_posts WHERE (post_id = ?)";
+            PreparedStatement stmt3 = PrepareStatement(sql3);
+            stmt3.setInt(1, postid);
+            ResultSet rs3 = stmt3.executeQuery();
+            while(rs3.next()) {
+                votes += rs3.getInt("value");
+            }
+
+            int comments = 0;
+            String sql4 = "SELECT COUNT(*) AS count FROM comments WHERE post_id = ?";
+            PreparedStatement stmt4 = Database.PrepareStatement(sql4);
+            stmt4.setInt(1, postid);
+            ResultSet rs4 = stmt4.executeQuery();
+            if (rs4.next()) {
+                comments = rs4.getInt("count");
+            }
+
+            return new Post(postid, GetUser(rs.getInt("author_id")), GetSubcreddit(rs.getInt("subcreddit_id")),
+                    rs.getString("title"), rs.getString("content"), media, GetPostCategories(postid),
+                    rs.getTimestamp("create_time"), rs.getTimestamp("edit_time"), votes, comments);
         }
         return null;
     }
@@ -147,12 +132,11 @@ public abstract class Database {
     private static ArrayList<String> GetPostCategories(int postID) throws SQLException {
         ArrayList<String> categories = new ArrayList<>();
         String sql = "SELECT * FROM post_categories WHERE (post_id = ?)";
-        try (PreparedStatement stmt = PrepareStatement(sql)) {
-            stmt.setInt(1, postID);
-            ResultSet rs = stmt.executeQuery();
-            while (rs.next()) {
-                categories.add(GetCategory(rs.getInt("category_id")));
-            }
+        PreparedStatement stmt = PrepareStatement(sql);
+        stmt.setInt(1, postID);
+        ResultSet rs = stmt.executeQuery();
+        while (rs.next()) {
+            categories.add(GetCategory(rs.getInt("category_id")));
         }
         return categories;
     }
@@ -160,11 +144,10 @@ public abstract class Database {
     public static ArrayList<String> GetAllCategories() throws SQLException {
         ArrayList<String> categories = new ArrayList<>();
         String sql = "SELECT * FROM categories ORDER BY name ASC";
-        try (PreparedStatement stmt = PrepareStatement(sql);
-             ResultSet rs = stmt.executeQuery()) {
-            while (rs.next()) {
-                categories.add(rs.getString("name"));
-            }
+        PreparedStatement stmt = PrepareStatement(sql);
+        ResultSet rs = stmt.executeQuery();
+        while (rs.next()) {
+            categories.add(rs.getString("name"));
         }
         return categories;
     }
@@ -174,24 +157,22 @@ public abstract class Database {
             return null;
 
         String sql = "SELECT * FROM categories WHERE (id = ?)";
-        try (PreparedStatement stmt = PrepareStatement(sql)) {
-            stmt.setInt(1, categoryID);
-            ResultSet rs = stmt.executeQuery();
-            if (rs.next()) {
-                return rs.getString("name");
-            }
+        PreparedStatement stmt = PrepareStatement(sql);
+        stmt.setInt(1, categoryID);
+        ResultSet rs = stmt.executeQuery();
+        if (rs.next()) {
+            return rs.getString("name");
         }
         return null;
     }
 
     public static int CategoryExists(String categoryName) throws SQLException {
         String sql = "SELECT * FROM categories WHERE (name = ?)";
-        try (PreparedStatement stmt = PrepareStatement(sql)) {
-            stmt.setString(1, categoryName.toLowerCase());
-            ResultSet rs = stmt.executeQuery();
-            if (rs.next()) {
-                return rs.getInt("id");
-            }
+        PreparedStatement stmt = PrepareStatement(sql);
+        stmt.setString(1, categoryName.toLowerCase());
+        ResultSet rs = stmt.executeQuery();
+        if (rs.next()) {
+            return rs.getInt("id");
         }
         return 0;
     }
@@ -203,37 +184,34 @@ public abstract class Database {
     public static ArrayList<User> GetAllUsers() throws SQLException {
         ArrayList<User> users = new ArrayList<>();
         String sql = "SELECT * FROM users ORDER BY id DESC";
-        try (PreparedStatement stmt = PrepareStatement(sql);
-             ResultSet rs = stmt.executeQuery()) {
-            while (rs.next()) {
-                if(rs.getInt("admin") == 1)
-                    users.add(new Admin(rs.getInt("id"), rs.getString("username"), rs.getString("email"), rs.getString("password_hash"),
-                            Gender.toGender(rs.getString("gender")), rs.getString("bio"), new Media(MediaType.IMAGE, rs.getString("pfp")),
-                            rs.getTimestamp("create_time"), rs.getInt("active") != 0));
-                else
-                    users.add(new User(rs.getInt("id"), rs.getString("username"), rs.getString("email"), rs.getString("password_hash"),
-                            Gender.toGender(rs.getString("gender")), rs.getString("bio"), new Media(MediaType.IMAGE, rs.getString("pfp")),
-                            rs.getTimestamp("create_time"), rs.getInt("active") != 0));
-            }
+        PreparedStatement stmt = PrepareStatement(sql);
+        ResultSet rs = stmt.executeQuery();
+        while (rs.next()) {
+            if(rs.getInt("admin") == 1)
+                users.add(new Admin(rs.getInt("id"), rs.getString("username"), rs.getString("email"), rs.getString("password_hash"),
+                        Gender.toGender(rs.getString("gender")), rs.getString("bio"), new Media(MediaType.IMAGE, rs.getString("pfp")),
+                        rs.getTimestamp("create_time"), rs.getInt("active") != 0));
+            else
+                users.add(new User(rs.getInt("id"), rs.getString("username"), rs.getString("email"), rs.getString("password_hash"),
+                        Gender.toGender(rs.getString("gender")), rs.getString("bio"), new Media(MediaType.IMAGE, rs.getString("pfp")),
+                        rs.getTimestamp("create_time"), rs.getInt("active") != 0));
         }
         return users;
     }
 
     public static User GetUser(int id) throws SQLException {
         String sql = "SELECT * FROM users WHERE (id = ?)";
-        try (PreparedStatement stmt = PrepareStatement(sql)) {
-            stmt.setInt(1, id);
-            ResultSet rs = stmt.executeQuery();
-            if (rs.next()) {
-                if(rs.getInt("admin") == 1)
-                    return new Admin(rs.getInt("id"), rs.getString("username"), rs.getString("email"), rs.getString("password_hash"),
-                            Gender.toGender(rs.getString("gender")), rs.getString("bio"), new Media(MediaType.IMAGE, rs.getString("pfp")),
-                            rs.getTimestamp("create_time"), rs.getInt("active") != 0);
-
-                return new User(rs.getInt("id"), rs.getString("username"), rs.getString("email"), rs.getString("password_hash"),
+        PreparedStatement stmt = PrepareStatement(sql);
+        stmt.setInt(1, id);
+        ResultSet rs = stmt.executeQuery();
+        if (rs.next()) {
+            if(rs.getInt("admin") == 1)
+                return new Admin(rs.getInt("id"), rs.getString("username"), rs.getString("email"), rs.getString("password_hash"),
                         Gender.toGender(rs.getString("gender")), rs.getString("bio"), new Media(MediaType.IMAGE, rs.getString("pfp")),
                         rs.getTimestamp("create_time"), rs.getInt("active") != 0);
-            }
+            return new User(rs.getInt("id"), rs.getString("username"), rs.getString("email"), rs.getString("password_hash"),
+                    Gender.toGender(rs.getString("gender")), rs.getString("bio"), new Media(MediaType.IMAGE, rs.getString("pfp")),
+                    rs.getTimestamp("create_time"), rs.getInt("active") != 0);
         }
         return null;
     }
@@ -247,25 +225,23 @@ public abstract class Database {
         ArrayList<Comment> comments = new ArrayList<>();
         String sql = "SELECT * FROM comments WHERE (post_id = ?) ORDER BY id DESC";
 
-        try (PreparedStatement stmt = PrepareStatement(sql)) {
-            stmt.setInt(1, postid);
-            ResultSet rs = stmt.executeQuery();
-            while (rs.next()) {
-                int commentID = rs.getInt("id");
-                int votes = 0;
-                String sql2 = "SELECT * FROM votes_comments WHERE (comment_id = ?)";
-                try (PreparedStatement stmt2 = PrepareStatement(sql2)) {
-                    stmt2.setInt(1, commentID);
-                    ResultSet rs2 = stmt2.executeQuery();
-                    while(rs2.next()) {
-                        votes += (rs2.getString("value").equalsIgnoreCase("Up")? 1 : -1);
-                    }
-                }
-                Comment p = new Comment(commentID, GetPost(rs.getInt("post_id")), GetUser(rs.getInt("author_id")), rs.getString("content"),
-                        new Media(MediaType.toMediaType(rs.getString("media_type")), rs.getString("media_url")), GetComment(rs.getInt("parent_id")), votes,
-                        rs.getTimestamp("create_time"), rs.getTimestamp("edit_time"));
-                comments.add(p);
+        PreparedStatement stmt = PrepareStatement(sql);
+        stmt.setInt(1, postid);
+        ResultSet rs = stmt.executeQuery();
+        while (rs.next()) {
+            int commentID = rs.getInt("id");
+            int votes = 0;
+            String sql2 = "SELECT * FROM votes_comments WHERE (comment_id = ?)";
+            PreparedStatement stmt2 = PrepareStatement(sql2);
+            stmt2.setInt(1, commentID);
+            ResultSet rs2 = stmt2.executeQuery();
+            while(rs2.next()) {
+                votes += (rs2.getString("value").equalsIgnoreCase("Up")? 1 : -1);
             }
+
+            comments.add(new Comment(commentID, GetPost(rs.getInt("post_id")), GetUser(rs.getInt("author_id")), rs.getString("content"),
+                    new Media(MediaType.toMediaType(rs.getString("media_type")), rs.getString("media_url")), GetComment(rs.getInt("parent_id")), votes,
+                    rs.getTimestamp("create_time"), rs.getTimestamp("edit_time")));
         }
         return comments;
     }
@@ -276,23 +252,22 @@ public abstract class Database {
 
         String sql = "SELECT * FROM comments WHERE (id = ?)";
 
-        try (PreparedStatement stmt = PrepareStatement(sql)) {
-            stmt.setInt(1, commentid);
-            ResultSet rs = stmt.executeQuery();
-            if (rs.next()) {
-                int votes = 0;
-                String sql2 = "SELECT * FROM votes_comments WHERE (comment_id = ?)";
-                try (PreparedStatement stmt2 = PrepareStatement(sql2)) {
-                    stmt2.setInt(1, commentid);
-                    ResultSet rs2 = stmt2.executeQuery();
-                    while(rs2.next()) {
-                        votes += (rs2.getString("value").equalsIgnoreCase("Up")? 1 : -1);
-                    }
-                }
-                return new Comment(commentid, GetPost(rs.getInt("post_id")), GetUser(rs.getInt("author_id")), rs.getString("content"),
-                        new Media(MediaType.toMediaType(rs.getString("media_type")), rs.getString("media_url")), GetComment(rs.getInt("parent_id")), votes,
-                        rs.getTimestamp("create_time"), rs.getTimestamp("edit_time"));
+        PreparedStatement stmt = PrepareStatement(sql);
+        stmt.setInt(1, commentid);
+        ResultSet rs = stmt.executeQuery();
+        if (rs.next()) {
+            int votes = 0;
+            String sql2 = "SELECT * FROM votes_comments WHERE (comment_id = ?)";
+            PreparedStatement stmt2 = PrepareStatement(sql2);
+            stmt2.setInt(1, commentid);
+            ResultSet rs2 = stmt2.executeQuery();
+            while(rs2.next()) {
+                votes += (rs2.getString("value").equalsIgnoreCase("Up")? 1 : -1);
             }
+
+            return new Comment(commentid, GetPost(rs.getInt("post_id")), GetUser(rs.getInt("author_id")), rs.getString("content"),
+                    new Media(MediaType.toMediaType(rs.getString("media_type")), rs.getString("media_url")), GetComment(rs.getInt("parent_id")), votes,
+                    rs.getTimestamp("create_time"), rs.getTimestamp("edit_time"));
         }
         return null;
     }
@@ -304,15 +279,12 @@ public abstract class Database {
         ArrayList<Subcreddit> subcreddits = new ArrayList<>();
         String sql = "SELECT * FROM subcreddits ORDER BY id DESC";
 
-        try (PreparedStatement stmt = PrepareStatement(sql);
-             ResultSet rs = stmt.executeQuery()) {
-            while (rs.next()) {
-                Subcreddit p = new Subcreddit(rs.getInt("id"), rs.getString("name"), rs.getString("description"),
-                        rs.getTimestamp("create_time"), GetUser(rs.getInt("creator_id")), new Media(MediaType.IMAGE, rs.getString("logo")),
-                        rs.getInt("private") == 1);
-                subcreddits.add(p);
-            }
-        }
+        PreparedStatement stmt = PrepareStatement(sql);
+        ResultSet rs = stmt.executeQuery();
+        while (rs.next())
+            subcreddits.add(new Subcreddit(rs.getInt("id"), rs.getString("name"), rs.getString("description"),
+                    rs.getTimestamp("create_time"), GetUser(rs.getInt("creator_id")), new Media(MediaType.IMAGE, rs.getString("logo")),
+                    rs.getInt("private") == 1));
         return subcreddits;
     }
 
@@ -322,15 +294,13 @@ public abstract class Database {
 
         String sql = "SELECT * FROM subcreddits WHERE (id = ?)";
 
-        try (PreparedStatement stmt = PrepareStatement(sql)) {
-            stmt.setInt(1, subID);
-            ResultSet rs = stmt.executeQuery();
-            if (rs.next()) {
-                return new Subcreddit(subID, rs.getString("name"), rs.getString("description"),
-                        rs.getTimestamp("create_time"), GetUser(rs.getInt("creator_id")), new Media(MediaType.IMAGE, rs.getString("logo")),
-                        rs.getInt("private") == 1);
-            }
-        }
+        PreparedStatement stmt = PrepareStatement(sql);
+        stmt.setInt(1, subID);
+        ResultSet rs = stmt.executeQuery();
+        if (rs.next())
+            return new Subcreddit(subID, rs.getString("name"), rs.getString("description"),
+                    rs.getTimestamp("create_time"), GetUser(rs.getInt("creator_id")), new Media(MediaType.IMAGE, rs.getString("logo")),
+                    rs.getInt("private") == 1);
         return null;
     }
 }
