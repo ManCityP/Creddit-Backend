@@ -301,8 +301,18 @@ public class Server {
             User user = gson.fromJson(json.get("user"), User.class);
             int lastPostID = gson.fromJson(json.get("lastID"), int.class);
             ArrayList<Post> posts = User.GetPostFeed(user, lastPostID);
+            ArrayList<Integer> myVotes = new ArrayList<>();
+            for(Post post : posts) {
+                if(user == null)
+                    myVotes.add(0);
+                else
+                    myVotes.add(user.CheckVote(post));
+            }
+            JsonObject jsonObj = new JsonObject();
+            jsonObj.add("posts", gson.toJsonTree(posts));
+            jsonObj.add("votes", gson.toJsonTree(myVotes));
             res.type("application/json");
-            return gson.toJson(posts);
+            return gson.toJson(jsonObj);
         });
 
         // Route: Send Private message
