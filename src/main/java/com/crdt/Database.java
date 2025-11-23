@@ -26,7 +26,15 @@ public abstract class Database {
         }
     }
 
-    public static PreparedStatement PrepareStatement(String sql) throws SQLException {  return conn.prepareStatement(sql);  }
+    public static PreparedStatement PrepareStatement(String sql) throws SQLException {
+        return conn.prepareStatement(sql);
+    }
+
+    public static PreparedStatement PrepareStatement(String sql, boolean genKey) throws SQLException {
+        if(genKey)
+            return conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS);
+        return conn.prepareStatement(sql);
+    }
 
 
     // TODO: MOVE A LOT OF THESE FUNCTIONS TO THEIR RESPECTIVE CLASSES!!!

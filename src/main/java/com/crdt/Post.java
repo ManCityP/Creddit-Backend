@@ -3,6 +3,7 @@ package com.crdt;
 import com.crdt.users.User;
 
 import java.sql.PreparedStatement;
+import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.util.ArrayList;
@@ -41,7 +42,6 @@ public class Post implements Voteable, Reportable {
     }
 
     public void create() throws SQLException {
-        //TODO: INSERT MEDIA IN post_media table
         if(this.categories != null) {
             for (String category : this.categories) {
                 int categoryID = Database.CategoryExists(category);
@@ -57,12 +57,32 @@ public class Post implements Voteable, Reportable {
             }
         }
         String sql = "INSERT INTO posts (author_id, subcreddit_id, title, content) VALUES (?, ?, ?, ?)";
-        PreparedStatement stmt = Database.PrepareStatement(sql);
+        PreparedStatement stmt = Database.PrepareStatement(sql, true);
         stmt.setInt(1, this.author.getId());
         stmt.setInt(2, this.subcreddit == null? 0 : this.subcreddit.GetSubId());
         stmt.setString(3, this.title);
         stmt.setString(4, this.content);
         stmt.executeUpdate();
+
+        if(this.media != null) {
+            ResultSet rs = stmt.getGeneratedKeys();
+            int genID = -1;
+            if(rs.next()) {
+                genID = rs.getInt(1);
+            }
+            if(genID <= 0)
+                return;
+            for(Media md : media) {
+                if(md.GetURL() != null && !md.GetURL().isEmpty()) {
+                    String sql2 = "INSERT INTO post_media (post_id, media_url, media_type) VALUES (?, ?, ?)";
+                    PreparedStatement stmt2 = Database.PrepareStatement(sql2);
+                    stmt2.setInt(1, genID);
+                    stmt2.setString(2, md.GetURL());
+                    stmt2.setString(3, md.GetType().toString());
+                    stmt2.executeUpdate();
+                }
+            }
+        }
     }
 
     public void delete() throws SQLException {
