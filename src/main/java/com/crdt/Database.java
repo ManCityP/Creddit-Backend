@@ -42,7 +42,7 @@ public abstract class Database {
     // BOOKMARK: Posts
     public static int InsertCategory(String category) throws SQLException {
         String sql = "INSERT INTO categories (name) VALUES (?)";
-        PreparedStatement stmt = PrepareStatement(sql);
+        PreparedStatement stmt = PrepareStatement(sql, true);
         stmt.setString(1, category.toLowerCase());
         stmt.executeUpdate();
         ResultSet rs = stmt.getGeneratedKeys();
