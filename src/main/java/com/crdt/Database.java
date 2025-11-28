@@ -47,7 +47,7 @@ public abstract class Database {
         stmt.executeUpdate();
         ResultSet rs = stmt.getGeneratedKeys();
         if (rs.next())
-            return rs.getInt("id");
+            return rs.getInt(1);
         return 0;
     }
 

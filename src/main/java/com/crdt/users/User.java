@@ -72,8 +72,9 @@ public class User implements Reportable {
     }
 
     public void register() throws SQLException {
-        String sql;
-        sql = "INSERT INTO users (username, email, password_hash, gender, bio, pfp) VALUES (?, ?, ?, ?, ?, ?)";
+        if(pfp == null)
+            pfp = new Media(MediaType.IMAGE, "");
+        String sql = "INSERT INTO users (username, email, password_hash, gender, bio, pfp) VALUES (?, ?, ?, ?, ?, ?)";
         PreparedStatement stmt = Database.PrepareStatement(sql);
         stmt.setString(1, this.username);
         stmt.setString(2, this.email);
@@ -177,7 +178,7 @@ public class User implements Reportable {
             ArrayList<String> categories = post.GetCategories();
             for(String category : categories) {
                 if(freq.containsKey(category))
-                    categoryMatch += Math.min(freq.get(category), 10);
+                    categoryMatch += Math.min(freq.get(category), 5);
             }
             long hoursOld = Duration.between(post.GetTimeCreated().toInstant(), Instant.now()).toHours();
             double score = (subcredditWeight * (subcredditMatch? 1 : 0)) + (followerWeight * (userFollowMatch? 1 : 0)) + (voteWeight * ((double)post.GetVotes()/1000.0))
@@ -228,7 +229,7 @@ public class User implements Reportable {
             for(String category : categories)
                 freq.put(category, freq.containsKey(category)? freq.get(category) + 1 : 1);
         }
-        return null;
+        return freq;
     }
 
     public void sharePost(Post post) {
