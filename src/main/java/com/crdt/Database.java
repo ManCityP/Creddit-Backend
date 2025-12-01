@@ -3,7 +3,6 @@ package com.crdt;
 import com.crdt.users.Admin;
 import com.crdt.users.Gender;
 import com.crdt.users.User;
-import de.mkammerer.argon2.*;
 
 import java.sql.*;
 import java.util.*;
@@ -65,7 +64,7 @@ public abstract class Database {
             stmt2.setInt(1, postid);
             ResultSet rs2 = stmt2.executeQuery();
             while (rs2.next()) {
-                media.add(new Media(MediaType.toMediaType(rs2.getString("media_type")), rs2.getString("media_url")));
+                media.add(new Media(MediaType.from(rs2.getString("media_type")), rs2.getString("media_url")));
             }
 
             int votes = 0;
@@ -109,7 +108,7 @@ public abstract class Database {
             stmt2.setInt(1, postid);
             ResultSet rs2 = stmt2.executeQuery();
             while (rs2.next()) {
-                media.add(new Media(MediaType.toMediaType(rs2.getString("media_type")), rs2.getString("media_url")));
+                media.add(new Media(MediaType.from(rs2.getString("media_type")), rs2.getString("media_url")));
             }
 
             int votes = 0;
@@ -197,11 +196,11 @@ public abstract class Database {
         while (rs.next()) {
             if(rs.getInt("admin") == 1)
                 users.add(new Admin(rs.getInt("id"), rs.getString("username"), rs.getString("email"), rs.getString("password_hash"),
-                        Gender.toGender(rs.getString("gender")), rs.getString("bio"), new Media(MediaType.IMAGE, rs.getString("pfp")),
+                        Gender.from(rs.getString("gender")), rs.getString("bio"), new Media(MediaType.IMAGE, rs.getString("pfp")),
                         rs.getTimestamp("create_time"), rs.getInt("active") != 0));
             else
                 users.add(new User(rs.getInt("id"), rs.getString("username"), rs.getString("email"), rs.getString("password_hash"),
-                        Gender.toGender(rs.getString("gender")), rs.getString("bio"), new Media(MediaType.IMAGE, rs.getString("pfp")),
+                        Gender.from(rs.getString("gender")), rs.getString("bio"), new Media(MediaType.IMAGE, rs.getString("pfp")),
                         rs.getTimestamp("create_time"), rs.getInt("active") != 0));
         }
         return users;
@@ -215,10 +214,10 @@ public abstract class Database {
         if (rs.next()) {
             if(rs.getInt("admin") == 1)
                 return new Admin(rs.getInt("id"), rs.getString("username"), rs.getString("email"), rs.getString("password_hash"),
-                        Gender.toGender(rs.getString("gender")), rs.getString("bio"), new Media(MediaType.IMAGE, rs.getString("pfp")),
+                        Gender.from(rs.getString("gender")), rs.getString("bio"), new Media(MediaType.IMAGE, rs.getString("pfp")),
                         rs.getTimestamp("create_time"), rs.getInt("active") != 0);
             return new User(rs.getInt("id"), rs.getString("username"), rs.getString("email"), rs.getString("password_hash"),
-                    Gender.toGender(rs.getString("gender")), rs.getString("bio"), new Media(MediaType.IMAGE, rs.getString("pfp")),
+                    Gender.from(rs.getString("gender")), rs.getString("bio"), new Media(MediaType.IMAGE, rs.getString("pfp")),
                     rs.getTimestamp("create_time"), rs.getInt("active") != 0);
         }
         return null;
@@ -248,7 +247,7 @@ public abstract class Database {
             }
 
             comments.add(new Comment(commentID, GetPost(rs.getInt("post_id")), GetUser(rs.getInt("author_id")), rs.getString("content"),
-                    new Media(MediaType.toMediaType(rs.getString("media_type")), rs.getString("media_url")), GetComment(rs.getInt("parent_id")), votes,
+                    new Media(MediaType.from(rs.getString("media_type")), rs.getString("media_url")), GetComment(rs.getInt("parent_id")), votes,
                     rs.getTimestamp("create_time"), rs.getTimestamp("edit_time")));
         }
         return comments;
@@ -274,7 +273,7 @@ public abstract class Database {
             }
 
             return new Comment(commentid, GetPost(rs.getInt("post_id")), GetUser(rs.getInt("author_id")), rs.getString("content"),
-                    new Media(MediaType.toMediaType(rs.getString("media_type")), rs.getString("media_url")), GetComment(rs.getInt("parent_id")), votes,
+                    new Media(MediaType.from(rs.getString("media_type")), rs.getString("media_url")), GetComment(rs.getInt("parent_id")), votes,
                     rs.getTimestamp("create_time"), rs.getTimestamp("edit_time"));
         }
         return null;

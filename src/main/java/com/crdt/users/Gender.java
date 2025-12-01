@@ -10,13 +10,12 @@ public enum Gender {
         this.gender = g;
     }
 
-    public static Gender toGender(String s) {
+    public static Gender from(String s) {
         if(s.equalsIgnoreCase("Male"))
             return MALE;
-        else if(s.equalsIgnoreCase("Female"))
+        if(s.equalsIgnoreCase("Female"))
             return FEMALE;
-        else
-            return null;
+        return null;
     }
     public String getGender() {
         return this.gender;

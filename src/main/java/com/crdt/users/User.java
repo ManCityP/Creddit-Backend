@@ -96,15 +96,24 @@ public class User implements Reportable {
             String pass = User.HashPassword(p, passwordHash.split(":")[0]);
             if(!pass.equals(passwordHash))
                 return null;
+            if(rs.getTimestamp("last_seen").toInstant().isAfter(Instant.now().minusSeconds(10)))
+                throw new SQLException("online");
             if(rs.getInt("admin") == 1)
                 return new Admin(rs.getInt("id"), rs.getString("username"), rs.getString("email"), p,
-                        Gender.toGender(rs.getString("gender")), rs.getString("bio"), new Media(MediaType.IMAGE, rs.getString("pfp")),
+                        Gender.from(rs.getString("gender")), rs.getString("bio"), new Media(MediaType.IMAGE, rs.getString("pfp")),
                         rs.getTimestamp("create_time"), rs.getInt("active") != 0);
             return new User(rs.getInt("id"), rs.getString("username"), rs.getString("email"), p,
-                    Gender.toGender(rs.getString("gender")), rs.getString("bio"), new Media(MediaType.IMAGE, rs.getString("pfp")),
+                    Gender.from(rs.getString("gender")), rs.getString("bio"), new Media(MediaType.IMAGE, rs.getString("pfp")),
                     rs.getTimestamp("create_time"), rs.getInt("active") != 0);
         }
         return null;
+    }
+
+    public void KeepAlive() throws SQLException {
+        String sql = "UPDATE users SET last_seen = CURRENT_TIMESTAMP WHERE id = ?";
+        PreparedStatement stmt = Database.PrepareStatement(sql);
+        stmt.setInt(1, this.id);
+        stmt.executeUpdate();
     }
 
     public void update() throws SQLException {
@@ -364,7 +373,7 @@ public class User implements Reportable {
         while(rs.next()) {
             int sender_id = rs.getInt("sender_id");
             messages.add(new Message(rs.getInt("id"), sender_id == id1? this : friend, sender_id == id1? friend : this,
-                    rs.getString("content"), new Media(MediaType.toMediaType(rs.getString("media_type")), rs.getString("media_url")),
+                    rs.getString("content"), new Media(MediaType.from(rs.getString("media_type")), rs.getString("media_url")),
                     rs.getTimestamp("create_time"), rs.getTimestamp("edit_time"), rs.getInt("read") != 0
             ));
         }
@@ -384,7 +393,7 @@ public class User implements Reportable {
         while(rs.next()) {
             int sender_id = rs.getInt("sender_id");
             messages.add(new Message(rs.getInt("id"), sender_id == id1? this : friend, sender_id == id1? friend : this,
-                    rs.getString("content"), new Media(MediaType.toMediaType(rs.getString("media_type")), rs.getString("media_url")),
+                    rs.getString("content"), new Media(MediaType.from(rs.getString("media_type")), rs.getString("media_url")),
                     rs.getTimestamp("create_time"), rs.getTimestamp("edit_time"), rs.getInt("read") != 0
             ));
         }

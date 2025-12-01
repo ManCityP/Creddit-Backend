@@ -11,6 +11,7 @@ import com.google.gson.typeadapters.RuntimeTypeAdapterFactory;
 import javax.servlet.MultipartConfigElement;
 import java.io.*;
 import java.nio.file.*;
+import java.sql.SQLException;
 import java.util.*;
 
 public class Server {
@@ -78,9 +79,15 @@ public class Server {
         RuntimeTypeAdapterFactory<User> userAdapter =
                 RuntimeTypeAdapterFactory.of(User.class, "type")
                         .registerSubtype(User.class, "user")
+                        .registerSubtype(Moderator.class, "moderator")
                         .registerSubtype(Admin.class, "admin");
+        RuntimeTypeAdapterFactory<Reportable> reportableAdapter =
+                RuntimeTypeAdapterFactory.of(Reportable.class, "type")
+                        .registerSubtype(User.class, "user")
+                        .registerSubtype(Post.class, "post")
+                        .registerSubtype(Comment.class, "comment");
 
-        gson = new GsonBuilder().registerTypeAdapterFactory(userAdapter).create();
+        gson = new GsonBuilder().registerTypeAdapterFactory(userAdapter).registerTypeAdapterFactory(reportableAdapter).create();
 
         // Enable CORS (for future frontend use)
         before((req, res) -> {
@@ -407,6 +414,20 @@ public class Server {
             return gson.toJson(messages);
         });
 
+        // Route: Keep the user session alive
+        post("/user/keepalive", (req, res) -> {
+            try {
+                User user = gson.fromJson(req.body(), User.class);
+                user.KeepAlive();
+                res.type("application/json");
+                return gson.toJson(Map.of("status", "ok"));
+            } catch (Exception e) {
+                e.printStackTrace(); // server log
+                res.status(500);
+                return gson.toJson(Map.of("status", "error", "message", e.getMessage()));
+            }
+        });
+
         // Route: Get a specific user
         get("/user", (req, res) -> {
             int id = Integer.parseInt(req.queryParams("id"));
@@ -419,9 +440,17 @@ public class Server {
         get("/user/login", (req, res) -> {
             String usermail = req.queryParams("usermail");
             String password = req.queryParams("password");
-            User user = User.login(usermail, password);
-            res.type("application/json");
-            return gson.toJson(user);
+            try {
+                User user = User.login(usermail, password);
+                if(user != null)
+                    user.KeepAlive();
+                res.type("application/json");
+                return gson.toJson(user);
+            }
+            catch (SQLException e) {
+                res.status(500);
+                return gson.toJson(Map.of("status", "error", "message", e.getMessage()));
+            }
         });
 
         // Route: Get all users
@@ -615,6 +644,84 @@ public class Server {
             ArrayList<Subcreddit> subcreddits = Database.GetAllSubcreddits();
             res.type("application/json");
             return gson.toJson(subcreddits);
+        });
+
+
+
+
+        // BOOKMARK: Reports
+        // Route: Submit a report
+        post("/report/submit", (req, res) -> {
+            try {
+                Report report = gson.fromJson(req.body(), Report.class);
+                report.SubmitReport();
+                res.type("application/json");
+                return gson.toJson(Map.of("status", "ok"));
+            } catch (Exception e) {
+                e.printStackTrace(); // server log
+                res.status(500);
+                return gson.toJson(Map.of("status", "error", "message", e.getMessage()));
+            }
+        });
+
+        // Route: Report a user
+        post("/report/resolve", (req, res) -> {
+            try {
+                Report report = gson.fromJson(req.body(), Report.class);
+                report.Resolve();
+                res.type("application/json");
+                return gson.toJson(Map.of("status", "ok"));
+            } catch (Exception e) {
+                e.printStackTrace(); // server log
+                res.status(500);
+                return gson.toJson(Map.of("status", "error", "message", e.getMessage()));
+            }
+        });
+
+        // Route: Report a user
+        post("/report/dismiss", (req, res) -> {
+            try {
+                Report report = gson.fromJson(req.body(), Report.class);
+                report.Dismiss();
+                res.type("application/json");
+                return gson.toJson(Map.of("status", "ok"));
+            } catch (Exception e) {
+                e.printStackTrace(); // server log
+                res.status(500);
+                return gson.toJson(Map.of("status", "error", "message", e.getMessage()));
+            }
+        });
+
+        // Route: Get user report feed
+        post("/report/feed/users", (req, res) -> {
+            JsonObject json = gson.fromJson(req.body(), JsonObject.class);
+            Admin admin = gson.fromJson(json.get("admin"), Admin.class);
+            int lastID = gson.fromJson(json.get("lastID"), int.class);
+            ArrayList<Report> reports = Report.GetUserReportFeed(admin, lastID);
+            res.type("application/json");
+            return gson.toJson(reports);
+        });
+
+        // Route: Get post report feed
+        post("/report/feed/posts", (req, res) -> {
+            JsonObject json = gson.fromJson(req.body(), JsonObject.class);
+            User user = gson.fromJson(json.get("user"), User.class);
+            Subcreddit sub = gson.fromJson(json.get("sub"), Subcreddit.class);
+            int lastID = gson.fromJson(json.get("lastID"), int.class);
+            ArrayList<Report> reports = Report.GetPostReportFeed(user, sub, lastID);
+            res.type("application/json");
+            return gson.toJson(reports);
+        });
+
+        // Route: Get comments report feed
+        post("/report/feed/comments", (req, res) -> {
+            JsonObject json = gson.fromJson(req.body(), JsonObject.class);
+            User user = gson.fromJson(json.get("user"), User.class);
+            Subcreddit sub = gson.fromJson(json.get("sub"), Subcreddit.class);
+            int lastID = gson.fromJson(json.get("lastID"), int.class);
+            ArrayList<Report> reports = Report.GetCommentReportFeed(user, sub, lastID);
+            res.type("application/json");
+            return gson.toJson(reports);
         });
 
 
