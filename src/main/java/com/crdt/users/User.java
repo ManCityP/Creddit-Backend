@@ -71,11 +71,11 @@ public class User implements Reportable {
         return str_salt + ":" + str_hash;
     }
 
-    public void register() throws SQLException {
+    public int register() throws SQLException {
         if(pfp == null)
             pfp = new Media(MediaType.IMAGE, "");
         String sql = "INSERT INTO users (username, email, password_hash, gender, bio, pfp) VALUES (?, ?, ?, ?, ?, ?)";
-        PreparedStatement stmt = Database.PrepareStatement(sql);
+        PreparedStatement stmt = Database.PrepareStatement(sql, true);
         stmt.setString(1, this.username);
         stmt.setString(2, this.email);
         stmt.setString(3, HashPassword(this.password));
@@ -83,6 +83,14 @@ public class User implements Reportable {
         stmt.setString(5, this.bio);
         stmt.setString(6, this.pfp.GetURL());
         stmt.executeUpdate();
+        ResultSet rs = stmt.getGeneratedKeys();
+        int genID = -1;
+        if(rs.next()) {
+            genID = rs.getInt(1);
+        }
+        if(genID <= 0)
+            throw new SQLException("Could not register user!");
+        return genID;
     }
 
     public static User login(String s, String p) throws SQLException {
@@ -92,6 +100,8 @@ public class User implements Reportable {
         stmt.setString(2, s);
         ResultSet rs = stmt.executeQuery();
         if (rs.next()) {
+            if(rs.getInt("verified") == 0)
+                return null;
             String passwordHash = rs.getString("password_hash");
             String pass = User.HashPassword(p, passwordHash.split(":")[0]);
             if(!pass.equals(passwordHash))

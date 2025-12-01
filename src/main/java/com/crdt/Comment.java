@@ -41,10 +41,20 @@ public class Comment implements Voteable, Reportable {
         stmt.executeUpdate();
     }
 
+    public void delete() throws SQLException {
+        String sql = "DELETE FROM comments WHERE id = ?";
+        PreparedStatement stmt = Database.PrepareStatement(sql);
+        stmt.setInt(1, this.id);
+        stmt.executeUpdate();
+    }
+
     public int getID() {return id;}
     public Post getPost() {return post;}
     public User getAuthor() {return author;}
     public Comment getParent() {return parent;}
     public String getContent() {return content;}
     public Media getMedia() {return media;}
+    public int getVotes() {return votes;}
+    public Timestamp getTimeCreated() {return timeCreated;}
+    public Timestamp getTimeEdited() {return timeEdited;}
 }

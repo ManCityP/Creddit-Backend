@@ -7,6 +7,9 @@ import com.crdt.users.Moderator;
 import com.crdt.users.User;
 import com.google.gson.*;
 import com.google.gson.typeadapters.RuntimeTypeAdapterFactory;
+import jakarta.mail.*;
+import jakarta.mail.internet.InternetAddress;
+import jakarta.mail.internet.MimeMessage;
 
 import javax.servlet.MultipartConfigElement;
 import java.io.*;
@@ -191,11 +194,26 @@ public class Server {
 
 
         // BOOKMARK: USER
+        // Route: Verify user
+        get("/verify", (req, res) -> {
+            String token = req.queryParams("token");
+            System.out.println(token);
+            if (Database.VerifyToken(token)) {
+                return "Email successfully Verified!";
+            } else {
+                res.status(400);
+                return "Invalid or expired token.";
+            }
+        });
+
         // Route: Create new user
         post("/user/register", (req, res) -> {
             try {
                 User user = gson.fromJson(req.body(), User.class);
-                user.register();
+                int userID = user.register();
+
+                SetupVerification(userID, user.getEmail());
+
                 res.type("application/json");
                 return gson.toJson(Map.of("status", "ok"));
             } catch (Exception e) {
@@ -831,5 +849,36 @@ public class Server {
             if(scanner.nextLine().equalsIgnoreCase("quit"))
                 System.exit(0);
         }
+    }
+
+    static void SetupVerification(int userID, String email) throws MessagingException, SQLException {
+        String token = UUID.randomUUID().toString();
+        Database.InsertVerificationToken(userID, token);
+        String link = System.getenv("server_url") + "/verify?token=" + token;
+        String body = "Thank you for registering with CREDDIT. You are just one step away. Click this link to verify your email:\n" + link;
+        Server.SendEmail(email, "CREDDIT Account Verification", body);
+    }
+
+    private static void SendEmail(String email, String subject, String body) throws MessagingException {
+        Properties props = new Properties();
+        props.put("mail.smtp.host", "smtp.gmail.com");
+        props.put("mail.smtp.port", "587");
+        props.put("mail.smtp.auth", "true");
+        props.put("mail.smtp.starttls.enable", "true");
+
+        Session session = Session.getInstance(props, new Authenticator() {
+            @Override
+            protected PasswordAuthentication getPasswordAuthentication() {
+                return new PasswordAuthentication(System.getenv("email"), System.getenv("mail_pass"));
+            }
+        });
+
+        jakarta.mail.Message message = new MimeMessage(session);
+        message.setFrom(new InternetAddress(System.getenv("email")));
+        message.setRecipients(jakarta.mail.Message.RecipientType.TO, InternetAddress.parse(email));
+        message.setSubject(subject);
+        message.setText(body);
+
+        Transport.send(message);
     }
 }

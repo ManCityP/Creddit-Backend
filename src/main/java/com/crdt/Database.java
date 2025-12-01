@@ -3,8 +3,10 @@ package com.crdt;
 import com.crdt.users.Admin;
 import com.crdt.users.Gender;
 import com.crdt.users.User;
+import jakarta.mail.MessagingException;
 
 import java.sql.*;
+import java.time.Instant;
 import java.util.*;
 
 public abstract class Database {
@@ -221,6 +223,43 @@ public abstract class Database {
                     rs.getTimestamp("create_time"), rs.getInt("active") != 0);
         }
         return null;
+    }
+
+    public static void InsertVerificationToken(int userID, String token) throws SQLException {
+        String sql = "INSERT INTO verification_tokens (user_id, token) VALUES (?, ?)";
+        PreparedStatement stmt = Database.PrepareStatement(sql);
+        stmt.setInt(1, userID);
+        stmt.setString(2, token);
+        stmt.executeUpdate();
+    }
+
+    public static boolean VerifyToken(String token) throws SQLException, MessagingException {
+        String sql = "SELECT * FROM verification_tokens WHERE token = ?";
+        PreparedStatement stmt = Database.PrepareStatement(sql);
+        stmt.setString(1, token);
+        ResultSet rs = stmt.executeQuery();
+        if(rs.next()) {
+            int userID = rs.getInt("user_id");
+            if(rs.getTimestamp("create_time").toInstant().isBefore(Instant.now().minusSeconds(1*60*60))) {
+                Server.SetupVerification(userID, GetUser(userID).getEmail());
+                DeleteToken(rs.getInt("id"));
+                return false;
+            }
+            String sql2 = "UPDATE users SET verified = '1' WHERE id = ?";
+            PreparedStatement stmt2 = Database.PrepareStatement(sql2);
+            stmt2.setInt(1, userID);
+            stmt2.executeUpdate();
+            DeleteToken(rs.getInt("id"));
+            return true;
+        }
+        return false;
+    }
+
+    private static void DeleteToken(int id) throws SQLException {
+        String sql = "DELETE FROM verification_tokens WHERE id = ?";
+        PreparedStatement stmt = Database.PrepareStatement(sql);
+        stmt.setInt(1, id);
+        stmt.executeUpdate();
     }
 
 
