@@ -16,12 +16,16 @@ import java.io.*;
 import java.nio.file.*;
 import java.sql.SQLException;
 import java.util.*;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 
 public class Server {
 
     private static final String UPLOAD_DIR = System.getProperty("user.dir") + File.separator + "uploads";
     private static Gson gson; //WORK
     private static Process ngrokProcess;
+    public static final ExecutorService THREAD_POOL = Executors.newFixedThreadPool(10);
 
     public static void main(String[] args) throws Exception {
         String tunnelURL = System.getenv("server_url");
@@ -38,13 +42,19 @@ public class Server {
             ngrokProcess = builder.start();
             Runtime.getRuntime().addShutdownHook(new Thread(() -> {
                 Database.CloseConnection();
-                //if(ngrokProcess.isAlive()) {
-                    try {
+                THREAD_POOL.shutdown();
+                try {
+                    if (!THREAD_POOL.awaitTermination(5, TimeUnit.SECONDS)) {
+                        THREAD_POOL.shutdownNow();
                         Runtime.getRuntime().exec("taskkill /F /IM ngrok.exe /T");
-                    } catch (Exception ex) {
-                        ex.printStackTrace();
                     }
-                //}
+                } catch (InterruptedException e) {
+                    THREAD_POOL.shutdownNow();
+                    Thread.currentThread().interrupt();
+                }
+                catch (Exception ex) {
+                    ex.printStackTrace();
+                }
             }));
             Thread.sleep(100);
         }
@@ -212,7 +222,13 @@ public class Server {
                 User user = gson.fromJson(req.body(), User.class);
                 int userID = user.register();
 
-                SetupVerification(userID, user.getEmail());
+                THREAD_POOL.submit(() -> {
+                    try {
+                        SetupVerification(userID, user.getEmail());
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
+                });
 
                 res.type("application/json");
                 return gson.toJson(Map.of("status", "ok"));
