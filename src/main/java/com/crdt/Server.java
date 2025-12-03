@@ -25,7 +25,7 @@ public class Server {
     private static final String UPLOAD_DIR = System.getProperty("user.dir") + File.separator + "uploads";
     private static Gson gson; //WORK
     private static Process ngrokProcess;
-    public static final ExecutorService THREAD_POOL = Executors.newFixedThreadPool(10);
+    private static final ExecutorService THREAD_POOL = Executors.newFixedThreadPool(10);
 
     public static void main(String[] args) throws Exception {
         String tunnelURL = System.getenv("server_url");
@@ -44,9 +44,9 @@ public class Server {
                 Database.CloseConnection();
                 THREAD_POOL.shutdown();
                 try {
+                    Runtime.getRuntime().exec("taskkill /F /IM ngrok.exe /T");
                     if (!THREAD_POOL.awaitTermination(5, TimeUnit.SECONDS)) {
                         THREAD_POOL.shutdownNow();
-                        Runtime.getRuntime().exec("taskkill /F /IM ngrok.exe /T");
                     }
                 } catch (InterruptedException e) {
                     THREAD_POOL.shutdownNow();
