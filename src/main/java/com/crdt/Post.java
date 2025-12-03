@@ -25,7 +25,9 @@ public class Post implements Voteable, Reportable {
         if (id <= 0)
             return;
 
-        if ((title == null || title.isEmpty()) && (content == null || content.isEmpty()) && media == null)
+        if (title == null || title.isEmpty() || title.length() > 255)
+            return;
+        if(content == null || content.isEmpty())
             return;
 
         this.id = id;

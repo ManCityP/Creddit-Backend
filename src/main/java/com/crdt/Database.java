@@ -42,6 +42,8 @@ public abstract class Database {
 
     // BOOKMARK: Posts
     public static int InsertCategory(String category) throws SQLException {
+        if(category.length() > 50)
+            throw new SQLException("Category is too big!");
         String sql = "INSERT INTO categories (name) VALUES (?)";
         PreparedStatement stmt = PrepareStatement(sql, true);
         stmt.setString(1, category.toLowerCase());
