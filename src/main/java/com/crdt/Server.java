@@ -482,7 +482,10 @@ public class Server {
                 return gson.toJson(user);
             }
             catch (SQLException e) {
-                res.status(500);
+                if(e.getMessage().equalsIgnoreCase("online"))
+                    res.status(233);
+                else
+                    res.status(500);
                 return gson.toJson(Map.of("status", "error", "message", e.getMessage()));
             }
         });
