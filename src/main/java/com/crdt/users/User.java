@@ -178,7 +178,7 @@ public class User implements Reportable {
             subs = this.GetSubcreddits();
             freq = this.GetFrequentCategories();
         }
-        double subcredditWeight = 200.0; double followerWeight = 100.0; double voteWeight = 10.0; double timeWeight = -5.0; double categoryWeight = 1.0;
+        double subcredditWeight = 200.0; double followerWeight = 100.0; double voteWeight = 10.0; double timeWeight = -2.0; double categoryWeight = 1.0;
         boolean subcredditMatch = false, userFollowMatch = false;
         int categoryMatch = 0;
         for(Post post : posts) {
@@ -225,7 +225,8 @@ public class User implements Reportable {
                         break;
                 }
             }
-            for(int i = 0; i < 10 && !sorted.isEmpty(); i++) {
+            int limit = lastID > 0? 6 : 10;
+            for(int i = 0; i < limit && !sorted.isEmpty(); i++) {
                 result.add(sorted.poll());
             }
             return result;

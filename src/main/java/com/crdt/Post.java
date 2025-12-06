@@ -27,8 +27,8 @@ public class Post implements Voteable, Reportable {
 
         if (title == null || title.isEmpty() || title.length() > 255)
             return;
-        if(content == null || content.isEmpty())
-            return;
+        /*if(content == null || content.isEmpty())
+            return;*/
 
         this.id = id;
         this.author = author;
