@@ -61,4 +61,12 @@ public class Message {
         stmt.setInt(4, this.id);
         stmt.executeUpdate();
     }
+
+    @Override
+    public boolean equals(Object obj) {
+        if(obj instanceof Message) {
+            return this.id == ((Message) obj).id;
+        }
+        return false;
+    }
 }

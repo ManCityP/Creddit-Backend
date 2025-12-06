@@ -11,8 +11,8 @@ import java.sql.Timestamp;
 
 public class Moderator extends User {
 
-    public Moderator(int id, String userName, String email, String password, Gender gender, String bio, Media profileMedia, Timestamp joinDate, boolean active) {
-        super(id, userName, email, password, gender, bio, profileMedia, joinDate, active);
+    public Moderator(int id, String userName, String email, String password, Gender gender, String bio, Media profileMedia, Timestamp joinDate, Timestamp lastSeen, boolean active) {
+        super(id, userName, email, password, gender, bio, profileMedia, joinDate, lastSeen, active);
     }
 
     public void BanMember(User user, Subcreddit subcreddit, String reason) throws SQLException {

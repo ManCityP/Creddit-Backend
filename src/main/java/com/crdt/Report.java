@@ -251,4 +251,12 @@ public class Report {
         return timeReported;
     }
 
+    @Override
+    public boolean equals(Object obj) {
+        if(obj instanceof Report) {
+            return this.id == ((Report) obj).id;
+        }
+        return false;
+    }
+
 }

@@ -57,4 +57,12 @@ public class Comment implements Voteable, Reportable {
     public int getVotes() {return votes;}
     public Timestamp getTimeCreated() {return timeCreated;}
     public Timestamp getTimeEdited() {return timeEdited;}
+
+    @Override
+    public boolean equals(Object obj) {
+        if(obj instanceof Comment) {
+            return this.id == ((Comment) obj).id;
+        }
+        return false;
+    }
 }

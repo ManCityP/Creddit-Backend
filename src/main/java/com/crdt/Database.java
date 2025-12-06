@@ -97,6 +97,106 @@ public abstract class Database {
         return posts;
     }
 
+    public static ArrayList<Post> GetAllPostsFilterSub(Subcreddit sub, int lastID) throws SQLException {
+        ArrayList<Post> posts = new ArrayList<>();
+        String sql;
+        if(lastID > 0)
+            sql = "SELECT * FROM posts WHERE subcreddit_id = ? AND id < ? ORDER BY id DESC LIMIT 6";
+        else
+            sql = "SELECT * FROM posts WHERE subcreddit_id = ? ORDER BY id DESC LIMIT 10";
+        PreparedStatement stmt = PrepareStatement(sql);
+        stmt.setInt(1, sub.GetSubId());
+        if(lastID > 0)
+            stmt.setInt(2, lastID);
+        ResultSet rs = stmt.executeQuery();
+        while (rs.next()) {
+            int postid = rs.getInt("id");
+            ArrayList<Media> media = new ArrayList<>();
+
+            String sql2 = "SELECT * FROM post_media WHERE (post_id = ?) ORDER BY id ASC";
+            PreparedStatement stmt2 = PrepareStatement(sql2);
+            stmt2.setInt(1, postid);
+            ResultSet rs2 = stmt2.executeQuery();
+            while (rs2.next()) {
+                media.add(new Media(MediaType.from(rs2.getString("media_type")), rs2.getString("media_url")));
+            }
+
+            int votes = 0;
+            String sql3 = "SELECT * FROM votes_posts WHERE (post_id = ?)";
+            PreparedStatement stmt3 = PrepareStatement(sql3);
+            stmt3.setInt(1, postid);
+            ResultSet rs3 = stmt3.executeQuery();
+            while(rs3.next()) {
+                votes += rs3.getInt("value");
+            }
+
+            int comments = 0;
+            String sql4 = "SELECT COUNT(*) AS count FROM comments WHERE post_id = ?";
+            PreparedStatement stmt4 = Database.PrepareStatement(sql4);
+            stmt4.setInt(1, postid);
+            ResultSet rs4 = stmt4.executeQuery();
+            if (rs4.next()) {
+                comments = rs4.getInt("count");
+
+            }
+            Post p = new Post(postid, GetUser(rs.getInt("author_id")), GetSubcreddit(rs.getInt("subcreddit_id")),
+                    rs.getString("title"), rs.getString("content"), media, GetPostCategories(postid),
+                    rs.getTimestamp("create_time"), rs.getTimestamp("edit_time"), votes, comments);
+            posts.add(p);
+        }
+        return posts;
+    }
+
+    public static ArrayList<Post> GetAllPostsFilterUser(User author, int lastID) throws SQLException {
+        ArrayList<Post> posts = new ArrayList<>();
+        String sql;
+        if(lastID > 0)
+            sql = "SELECT * FROM posts WHERE author_id = ? AND id < ? ORDER BY id DESC LIMIT 6";
+        else
+            sql = "SELECT * FROM posts WHERE author_id = ? ORDER BY id DESC LIMIT 10";
+        PreparedStatement stmt = PrepareStatement(sql);
+        stmt.setInt(1, author.getId());
+        if(lastID > 0)
+            stmt.setInt(2, lastID);
+        ResultSet rs = stmt.executeQuery();
+        while (rs.next()) {
+            int postid = rs.getInt("id");
+            ArrayList<Media> media = new ArrayList<>();
+
+            String sql2 = "SELECT * FROM post_media WHERE (post_id = ?) ORDER BY id ASC";
+            PreparedStatement stmt2 = PrepareStatement(sql2);
+            stmt2.setInt(1, postid);
+            ResultSet rs2 = stmt2.executeQuery();
+            while (rs2.next()) {
+                media.add(new Media(MediaType.from(rs2.getString("media_type")), rs2.getString("media_url")));
+            }
+
+            int votes = 0;
+            String sql3 = "SELECT * FROM votes_posts WHERE (post_id = ?)";
+            PreparedStatement stmt3 = PrepareStatement(sql3);
+            stmt3.setInt(1, postid);
+            ResultSet rs3 = stmt3.executeQuery();
+            while(rs3.next()) {
+                votes += rs3.getInt("value");
+            }
+
+            int comments = 0;
+            String sql4 = "SELECT COUNT(*) AS count FROM comments WHERE post_id = ?";
+            PreparedStatement stmt4 = Database.PrepareStatement(sql4);
+            stmt4.setInt(1, postid);
+            ResultSet rs4 = stmt4.executeQuery();
+            if (rs4.next()) {
+                comments = rs4.getInt("count");
+
+            }
+            Post p = new Post(postid, GetUser(rs.getInt("author_id")), GetSubcreddit(rs.getInt("subcreddit_id")),
+                    rs.getString("title"), rs.getString("content"), media, GetPostCategories(postid),
+                    rs.getTimestamp("create_time"), rs.getTimestamp("edit_time"), votes, comments);
+            posts.add(p);
+        }
+        return posts;
+    }
+
     public static Post GetPost(int postid) throws SQLException {
         if(postid <= 0)
             return null;
@@ -201,11 +301,11 @@ public abstract class Database {
             if(rs.getInt("admin") == 1)
                 users.add(new Admin(rs.getInt("id"), rs.getString("username"), rs.getString("email"), rs.getString("password_hash"),
                         Gender.from(rs.getString("gender")), rs.getString("bio"), new Media(MediaType.IMAGE, rs.getString("pfp")),
-                        rs.getTimestamp("create_time"), rs.getInt("active") != 0));
+                        rs.getTimestamp("create_time"), rs.getTimestamp("last_seen"), rs.getInt("active") != 0));
             else
                 users.add(new User(rs.getInt("id"), rs.getString("username"), rs.getString("email"), rs.getString("password_hash"),
                         Gender.from(rs.getString("gender")), rs.getString("bio"), new Media(MediaType.IMAGE, rs.getString("pfp")),
-                        rs.getTimestamp("create_time"), rs.getInt("active") != 0));
+                        rs.getTimestamp("create_time"), rs.getTimestamp("last_seen"), rs.getInt("active") != 0));
         }
         return users;
     }
@@ -219,10 +319,10 @@ public abstract class Database {
             if(rs.getInt("admin") == 1)
                 return new Admin(rs.getInt("id"), rs.getString("username"), rs.getString("email"), rs.getString("password_hash"),
                         Gender.from(rs.getString("gender")), rs.getString("bio"), new Media(MediaType.IMAGE, rs.getString("pfp")),
-                        rs.getTimestamp("create_time"), rs.getInt("active") != 0);
+                        rs.getTimestamp("create_time"), rs.getTimestamp("last_seen"), rs.getInt("active") != 0);
             return new User(rs.getInt("id"), rs.getString("username"), rs.getString("email"), rs.getString("password_hash"),
                     Gender.from(rs.getString("gender")), rs.getString("bio"), new Media(MediaType.IMAGE, rs.getString("pfp")),
-                    rs.getTimestamp("create_time"), rs.getInt("active") != 0);
+                    rs.getTimestamp("create_time"), rs.getTimestamp("last_seen"), rs.getInt("active") != 0);
         }
         return null;
     }

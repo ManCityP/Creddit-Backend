@@ -319,6 +319,23 @@ public class Server {
             }
         });
 
+        // Route: Accept Friend Request
+        post("/friends/accept", (req, res) -> {
+            try {
+                JsonObject json = gson.fromJson(req.body(), JsonObject.class);
+                User sender = gson.fromJson(json.get("sender"), User.class);
+                User receiver = gson.fromJson(json.get("receiver"), User.class);
+
+                receiver.acceptFriend(sender);
+                res.type("application/json");
+                return gson.toJson(Map.of("status", "ok"));
+            } catch (Exception e) {
+                e.printStackTrace(); // server log
+                res.status(500);
+                return gson.toJson(Map.of("status", "error", "message", e.getMessage()));
+            }
+        });
+
         // Route: Unfriend
         post("/friends/remove", (req, res) -> {
             try {
@@ -336,12 +353,79 @@ public class Server {
             }
         });
 
+        // Route: Get user's friends
+        post("/friends", (req, res) -> {
+            User user = gson.fromJson(req.body(), User.class);
+            ArrayList<User> users = user.GetFriends();
+            res.type("application/json");
+            return gson.toJson(users);
+        });
+
+        // Route: Get user's sent friend requests
+        post("/friends/sent", (req, res) -> {
+            User user = gson.fromJson(req.body(), User.class);
+            ArrayList<User> users = user.GetSentFriendRequests();
+            res.type("application/json");
+            return gson.toJson(users);
+        });
+
+        // Route: Get user's received friend requests
+        post("/friends/received", (req, res) -> {
+            User user = gson.fromJson(req.body(), User.class);
+            ArrayList<User> users = user.GetReceivedFriendRequests();
+            res.type("application/json");
+            return gson.toJson(users);
+        });
+
         // Route: Get user's post feed
         post("/post/feed", (req, res) -> {
             JsonObject json = gson.fromJson(req.body(), JsonObject.class);
             User user = gson.fromJson(json.get("user"), User.class);
+            String prompt = gson.fromJson(json.get("prompt"), String.class);
             int lastPostID = gson.fromJson(json.get("lastID"), int.class);
-            ArrayList<Post> posts = User.GetPostFeed(user, lastPostID);
+            ArrayList<Post> posts = User.GetPostFeed(user, prompt, lastPostID);
+            ArrayList<Integer> myVotes = new ArrayList<>();
+            for(Post post : posts) {
+                if(user == null)
+                    myVotes.add(0);
+                else
+                    myVotes.add(user.CheckVote(post));
+            }
+            JsonObject jsonObj = new JsonObject();
+            jsonObj.add("posts", gson.toJsonTree(posts));
+            jsonObj.add("votes", gson.toJsonTree(myVotes));
+            res.type("application/json");
+            return gson.toJson(jsonObj);
+        });
+
+        // Route: Get user's post feed - filter by subcreddit
+        post("/post/feed/filter-sub", (req, res) -> {
+            JsonObject json = gson.fromJson(req.body(), JsonObject.class);
+            User user = gson.fromJson(json.get("user"), User.class);
+            Subcreddit sub = gson.fromJson(json.get("sub"), Subcreddit.class);
+            int lastPostID = gson.fromJson(json.get("lastID"), int.class);
+            ArrayList<Post> posts = Database.GetAllPostsFilterSub(sub, lastPostID);
+            ArrayList<Integer> myVotes = new ArrayList<>();
+            for(Post post : posts) {
+                if(user == null)
+                    myVotes.add(0);
+                else
+                    myVotes.add(user.CheckVote(post));
+            }
+            JsonObject jsonObj = new JsonObject();
+            jsonObj.add("posts", gson.toJsonTree(posts));
+            jsonObj.add("votes", gson.toJsonTree(myVotes));
+            res.type("application/json");
+            return gson.toJson(jsonObj);
+        });
+
+        // Route: Get user's post feed - filter by author
+        post("/post/feed/filter-author", (req, res) -> {
+            JsonObject json = gson.fromJson(req.body(), JsonObject.class);
+            User user = gson.fromJson(json.get("user"), User.class);
+            User author = gson.fromJson(json.get("author"), User.class);
+            int lastPostID = gson.fromJson(json.get("lastID"), int.class);
+            ArrayList<Post> posts = Database.GetAllPostsFilterUser(author, lastPostID);
             ArrayList<Integer> myVotes = new ArrayList<>();
             for(Post post : posts) {
                 if(user == null)
@@ -402,30 +486,6 @@ public class Server {
             return gson.toJson(vote);
         });
 
-        // Route: Get user's friends
-        post("/friends", (req, res) -> {
-            User user = gson.fromJson(req.body(), User.class);
-            ArrayList<User> users = user.GetFriends();
-            res.type("application/json");
-            return gson.toJson(users);
-        });
-
-        // Route: Get user's sent friend requests
-        post("/friends/sent", (req, res) -> {
-            User user = gson.fromJson(req.body(), User.class);
-            ArrayList<User> users = user.GetSentFriendRequests();
-            res.type("application/json");
-            return gson.toJson(users);
-        });
-
-        // Route: Get user's received friend requests
-        post("/friends/received", (req, res) -> {
-            User user = gson.fromJson(req.body(), User.class);
-            ArrayList<User> users = user.GetReceivedFriendRequests();
-            res.type("application/json");
-            return gson.toJson(users);
-        });
-
         // Route: Get user's private message feed
         post("/pm/feed", (req, res) -> {
             JsonObject json = gson.fromJson(req.body(), JsonObject.class);
@@ -433,6 +493,16 @@ public class Server {
             User user2 = gson.fromJson(json.get("user2"), User.class);
             int lastMessageID = gson.fromJson(json.get("lastID"), int.class);
             ArrayList<Message> messages = user1.GetPrivateMessageFeed(user2, lastMessageID);
+            res.type("application/json");
+            return gson.toJson(messages);
+        });
+
+        // Route: Get user's unread private message
+        post("/pm/unread", (req, res) -> {
+            JsonObject json = gson.fromJson(req.body(), JsonObject.class);
+            User user1 = gson.fromJson(json.get("user1"), User.class);
+            User user2 = gson.fromJson(json.get("user2"), User.class);
+            ArrayList<Message> messages = user1.GetUnreadPrivateMessages(user2);
             res.type("application/json");
             return gson.toJson(messages);
         });
@@ -446,6 +516,16 @@ public class Server {
             ArrayList<Message> messages = user1.GetLatestPrivateMessages(user2, lastMessageID);
             res.type("application/json");
             return gson.toJson(messages);
+        });
+
+        // Route: Set messages to read
+        post("/pm/read", (req, res) -> {
+            JsonObject json = gson.fromJson(req.body(), JsonObject.class);
+            User user1 = gson.fromJson(json.get("user1"), User.class);
+            User user2 = gson.fromJson(json.get("user2"), User.class);
+            user1.ReadMessages(user2);
+            res.type("application/json");
+            return gson.toJson(Map.of("status", "ok"));
         });
 
         // Route: Keep the user session alive

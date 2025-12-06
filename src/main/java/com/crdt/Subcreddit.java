@@ -112,5 +112,13 @@ public class Subcreddit {
      void UpdateLogo (Media logo){
         this.subLogo = logo;
     }
+
+    @Override
+    public boolean equals(Object obj) {
+        if(obj instanceof Subcreddit) {
+            return this.id == ((Subcreddit) obj).id;
+        }
+        return false;
+    }
 }
 

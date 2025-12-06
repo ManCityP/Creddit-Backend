@@ -137,4 +137,12 @@ public class Post implements Voteable, Reportable {
     public int GetComments() {
         return comments;
     }
+
+    @Override
+    public boolean equals(Object obj) {
+        if(obj instanceof Post) {
+            return this.id == ((Post) obj).id;
+        }
+        return false;
+    }
 }

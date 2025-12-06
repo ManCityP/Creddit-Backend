@@ -18,11 +18,12 @@ public class User implements Reportable {
     protected String bio;
     protected Media pfp;
     protected Timestamp timeCreated;
+    protected Timestamp lastSeen;
     protected boolean active;
 
     private static final Argon2Advanced ARGON2 = Argon2Factory.createAdvanced(Argon2Factory.Argon2Types.ARGON2id);
 
-    public User(int id, String username, String email, String password, Gender gender, String bio, Media pfp, Timestamp timeCreated, boolean active) {
+    public User(int id, String username, String email, String password, Gender gender, String bio, Media pfp, Timestamp timeCreated, Timestamp lastSeen, boolean active) {
         if (id < 0)
             return;
         if (username == null || username.isEmpty() || username.length() > 32)
@@ -42,6 +43,7 @@ public class User implements Reportable {
         this.bio = bio;
         this.pfp = pfp;
         this.timeCreated = timeCreated;
+        this.lastSeen = lastSeen;
         this.active = active;
     }
 
@@ -111,10 +113,10 @@ public class User implements Reportable {
             if(rs.getInt("admin") == 1)
                 return new Admin(rs.getInt("id"), rs.getString("username"), rs.getString("email"), p,
                         Gender.from(rs.getString("gender")), rs.getString("bio"), new Media(MediaType.IMAGE, rs.getString("pfp")),
-                        rs.getTimestamp("create_time"), rs.getInt("active") != 0);
+                        rs.getTimestamp("create_time"), rs.getTimestamp("last_seen"), rs.getInt("active") != 0);
             return new User(rs.getInt("id"), rs.getString("username"), rs.getString("email"), p,
                     Gender.from(rs.getString("gender")), rs.getString("bio"), new Media(MediaType.IMAGE, rs.getString("pfp")),
-                    rs.getTimestamp("create_time"), rs.getInt("active") != 0);
+                    rs.getTimestamp("create_time"), rs.getTimestamp("last_seen"), rs.getInt("active") != 0);
         }
         return null;
     }
@@ -212,12 +214,25 @@ public class User implements Reportable {
         return pq;
     }
 
-    public static ArrayList<Post> GetPostFeed(User user, int lastID) {
+    public static ArrayList<Post> GetPostFeed(User user, String prompt, int lastID) {
         ArrayList<Post> result = new ArrayList<>();
         try {
             ArrayList<Post> posts = Database.GetAllPosts();
+            if(prompt != null && !prompt.isBlank()) {
+                prompt = prompt.toLowerCase();
+                ArrayList<Post> filteredPosts = new ArrayList<>();
+                for (Post post : posts) {
+                    if (post.GetTitle().toLowerCase().contains(prompt) || post.GetCategories().contains(prompt) ||
+                            post.GetContent().toLowerCase().contains(prompt) ||
+                            post.GetAuthor().getUsername().toLowerCase().contains(prompt) ||
+                            post.GetSubcreddit().GetSubName().toLowerCase().contains(prompt)) {
+                        filteredPosts.add(post);
+                    }
+                }
+                posts = filteredPosts;
+            }
             if(user == null)
-                user = new User(0, "Default", "default@default.com", "", Gender.MALE, "", new Media(MediaType.IMAGE, ""), null, true);
+                user = new User(0, "Default", "default@default.com", "", Gender.MALE, "", new Media(MediaType.IMAGE, ""), null, null, true);
             PriorityQueue<Post> sorted = user.ScorePosts(posts);
             if(lastID > 0) {
                 while (!sorted.isEmpty()) {
@@ -306,6 +321,15 @@ public class User implements Reportable {
         PreparedStatement stmt = Database.PrepareStatement(sql);
         stmt.setInt(1, senderId);
         stmt.setInt(2, receiverId);
+        stmt.executeUpdate();
+    }
+
+    public void acceptFriend(User friend) throws SQLException {
+        if(!this.active)
+            return;
+        String sql = "UPDATE followers SET accepted = 1 WHERE (follower_id = ? AND followed_id = ?)";
+        PreparedStatement stmt = Database.PrepareStatement(sql);
+        stmt.setInt(1, friend.id); stmt.setInt(2, this.id);
         stmt.executeUpdate();
     }
 
@@ -411,6 +435,34 @@ public class User implements Reportable {
         return messages;
     }
 
+    public ArrayList<Message> GetUnreadPrivateMessages(User friend) throws SQLException {
+        ArrayList<Message> messages = new ArrayList<>();
+        int id1 = this.id;
+        int id2 = friend.id;
+        String sql = "SELECT * FROM messages ORDER BY id ASC WHERE (sender_id = ? AND receiver_id = ?) OR (sender_id = ? AND receiver_id = ?) AND read = 0";
+        PreparedStatement stmt = Database.PrepareStatement(sql);
+        stmt.setInt(1, id1); stmt.setInt(2, id2);
+        stmt.setInt(3, id2); stmt.setInt(4, id1);
+        ResultSet rs = stmt.executeQuery();
+        while(rs.next()) {
+            int sender_id = rs.getInt("sender_id");
+            messages.add(new Message(rs.getInt("id"), sender_id == id1? this : friend, sender_id == id1? friend : this,
+                    rs.getString("content"), new Media(MediaType.from(rs.getString("media_type")), rs.getString("media_url")),
+                    rs.getTimestamp("create_time"), rs.getTimestamp("edit_time"), rs.getInt("read") != 0
+            ));
+        }
+        return messages;
+    }
+
+    public void ReadMessages(User friend) throws SQLException {
+        int id1 = this.id;
+        int id2 = friend.id;
+        String sql = "UPDATE messages SET read = 1 WHERE (sender_id = ? AND receiver_id = ?)";
+        PreparedStatement stmt = Database.PrepareStatement(sql);
+        stmt.setInt(1, id2); stmt.setInt(2, id1);
+        stmt.executeUpdate();
+    }
+
     public void addReport(Report report) {
         //TODO wainting for Meho
     }
@@ -502,4 +554,12 @@ public class User implements Reportable {
     public Media getPfp() {return this.pfp;}
     public Timestamp getTimeCreated() {return this.timeCreated;}
     public boolean getActive() {return this.active;}
+
+    @Override
+    public boolean equals(Object obj) {
+        if(obj instanceof User) {
+            return this.id == ((User) obj).id;
+        }
+        return false;
+    }
 }
