@@ -523,6 +523,7 @@ public class User implements Reportable {
     }
 
     //TODO: Setters will probably be useless, waiting to be removed.
+    //TODO: SETTERS NOT IN CLASS DIAGRAM
     public void setUsername(String username) {
         if (username == null || username.isEmpty() || username.length() > 32)
             return;
