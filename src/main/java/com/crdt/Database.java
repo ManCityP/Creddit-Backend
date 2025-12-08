@@ -39,7 +39,7 @@ public abstract class Database {
 
 
     // TODO: MOVE A LOT OF THESE FUNCTIONS TO THEIR RESPECTIVE CLASSES!!!
-
+    //TODO: UNTOUCHED IN CLASSDIAGRAM
     // BOOKMARK: Posts
     public static int InsertCategory(String category) throws SQLException {
         if(category.length() > 50)
