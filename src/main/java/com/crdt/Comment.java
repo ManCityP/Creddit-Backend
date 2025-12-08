@@ -48,6 +48,23 @@ public class Comment implements Voteable, Reportable {
         stmt.executeUpdate();
     }
 
+    public void updateVote(User voter, int voteValue) throws SQLException {
+        if (voteValue == 0) {
+            String sql = "DELETE FROM votes_comments WHERE (user_id = ? AND comment_id = ?)";
+            PreparedStatement stmt = Database.PrepareStatement(sql);
+            stmt.setInt(1, voter.getId());
+            stmt.setInt(2, this.id);
+            stmt.executeUpdate();
+            return;
+        }
+        String sql = "INSERT INTO votes_comments (user_id, comment_id, value) VALUES (?, ?, ?) ON DUPLICATE KEY UPDATE value = VALUES(value)";
+        PreparedStatement stmt = Database.PrepareStatement(sql);
+        stmt.setInt(1, voter.getId());
+        stmt.setInt(2, this.id);
+        stmt.setInt(3, voteValue);
+        stmt.executeUpdate();
+    }
+
     public int getID() {return id;}
     public Post getPost() {return post;}
     public User getAuthor() {return author;}

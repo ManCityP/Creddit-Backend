@@ -51,15 +51,10 @@ public class Message {
         stmt.executeUpdate();
     }
 
-    // TODO: Probably Remove editing a message's media, hard, insignificant and useless (just like you)
-    // TODO: NOT INCLUDED IN CLASS DIAGRAM                                              4okran ya ba4a <3
-    public void update() throws SQLException {
-        String sql = "UPDATE messages SET content = ?, media_url = ?, media_type = ? WHERE id = ?";
+    public void delete() throws SQLException {
+        String sql = "DELETE FROM messages WHERE id = ?";
         PreparedStatement stmt = Database.PrepareStatement(sql);
-        stmt.setString(1, this.text);
-        stmt.setString(2, this.media.GetURL());
-        stmt.setString(3, this.media.GetType().toString());
-        stmt.setInt(4, this.id);
+        stmt.setInt(1, this.id);
         stmt.executeUpdate();
     }
 

@@ -10,13 +10,13 @@ public class Admin extends Moderator {
         super(id, username, email, password, gender, bio, pfp, timeCreated, lastSeen, active);
     }
 
-    public void BanUser(User user, String reason) throws SQLException {
-        BanMember(user, null, reason);
-        user.delete();
+    public void DeactivateUser(User user, String reason) throws SQLException {
+        //BanMember(user, null, reason);
+        user.deactivate();
     }
 
-    public void UnbanUser(User user) throws SQLException {
-        UnbanMember(user, null);
+    public void ActivateUser(User user) throws SQLException {
+        //UnbanMember(user, null);
         user.activate();
     }
 }

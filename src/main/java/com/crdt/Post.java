@@ -88,10 +88,33 @@ public class Post implements Voteable, Reportable {
         }
     }
 
+    // TODO: Do this like a normal human being
+    public void update() throws SQLException {
+        this.delete();
+        this.create();
+    }
+
     public void delete() throws SQLException {
         String sql = "DELETE FROM posts WHERE id = ?";
         PreparedStatement stmt = Database.PrepareStatement(sql);
         stmt.setInt(1, this.id);
+        stmt.executeUpdate();
+    }
+
+    public void updateVotes(User voter, int voteValue) throws SQLException {
+        if (voteValue == 0) {
+            String sql = "DELETE FROM votes_posts WHERE (user_id = ? AND post_id = ?)";
+            PreparedStatement stmt = Database.PrepareStatement(sql);
+            stmt.setInt(1, voter.getId());
+            stmt.setInt(2, this.id);
+            stmt.executeUpdate();
+            return;
+        }
+        String sql = "INSERT INTO votes_posts (user_id, post_id, value) VALUES (?, ?, ?) ON DUPLICATE KEY UPDATE value = VALUES(value)";
+        PreparedStatement stmt = Database.PrepareStatement(sql);
+        stmt.setInt(1, voter.getId());
+        stmt.setInt(2, this.id);
+        stmt.setInt(3, voteValue);
         stmt.executeUpdate();
     }
 

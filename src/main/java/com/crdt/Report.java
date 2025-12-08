@@ -229,6 +229,9 @@ public class Report {
         return id;
     }
 
+    public User getReporter() {
+        return reporter;
+    }
 
     public Reportable getTarget() {
         return target;

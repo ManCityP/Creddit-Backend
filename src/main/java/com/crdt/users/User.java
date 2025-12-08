@@ -141,7 +141,7 @@ public class User implements Reportable {
         stmt.executeUpdate();
     }
 
-    public void delete() throws SQLException {
+    public void deactivate() throws SQLException {
         if(!this.active)
             return;
         String sql = "UPDATE users SET active = 0 WHERE id = ?";
@@ -150,7 +150,7 @@ public class User implements Reportable {
         stmt.executeUpdate();
     }
 
-    public void activate() throws SQLException { //todo put in admin
+    public void activate() throws SQLException {
         if(this.active)
             return;
         String sql = "UPDATE users SET active = 1 WHERE id = ?";
@@ -217,20 +217,7 @@ public class User implements Reportable {
     public static ArrayList<Post> GetPostFeed(User user, String prompt, int lastID) {
         ArrayList<Post> result = new ArrayList<>();
         try {
-            ArrayList<Post> posts = Database.GetAllPosts();
-            if(prompt != null && !prompt.isBlank()) {
-                prompt = prompt.toLowerCase();
-                ArrayList<Post> filteredPosts = new ArrayList<>();
-                for (Post post : posts) {
-                    if (post.GetTitle().toLowerCase().contains(prompt) || post.GetCategories().contains(prompt) ||
-                            post.GetContent().toLowerCase().contains(prompt) ||
-                            post.GetAuthor().getUsername().toLowerCase().contains(prompt) ||
-                            post.GetSubcreddit().GetSubName().toLowerCase().contains(prompt)) {
-                        filteredPosts.add(post);
-                    }
-                }
-                posts = filteredPosts;
-            }
+            ArrayList<Post> posts = Database.GetAllPosts(prompt);
             if(user == null)
                 user = new User(0, "Default", "default@default.com", "", Gender.MALE, "", new Media(MediaType.IMAGE, ""), null, null, true);
             PriorityQueue<Post> sorted = user.ScorePosts(posts);
@@ -271,7 +258,7 @@ public class User implements Reportable {
         //TODO wainting for Meho (Meho here, this can wait for next update, also "wainting" ;) )
     }
 
-    public void savePost(Post post) {
+    public void bookmarkPost(Post post) {
         //TODO wainting for Meho (Meho here, this can wait for next update, also "wainting" ;) )
     }
 
@@ -463,8 +450,8 @@ public class User implements Reportable {
         stmt.executeUpdate();
     }
 
-    public void addReport(Report report) {
-        //TODO wainting for Meho
+    public void addReport(Report report) throws SQLException {
+        report.SubmitReport();
     }
 
     public void vote(Voteable voteable, int voteValue) throws SQLException { // voteValue -> {1: upvote, -1: downvote, 0: remove vote}
@@ -472,57 +459,40 @@ public class User implements Reportable {
             return;
         if (voteable instanceof Post) {
             Post post = (Post) voteable;
-            if (post.GetID() <= 0)
-                return;
-            if (voteValue == 0) {
-                String sql = "DELETE FROM votes_posts WHERE (user_id = ? AND post_id = ?)";
-                PreparedStatement stmt = Database.PrepareStatement(sql);
-                stmt.setInt(1, this.id);
-                stmt.setInt(2, post.GetID());
-                stmt.executeUpdate();
-                return;
-            }
-            String sql = "INSERT INTO votes_posts (user_id, post_id, value) VALUES (?, ?, ?) ON DUPLICATE KEY UPDATE value = VALUES(value)";
-            PreparedStatement stmt = Database.PrepareStatement(sql);
-            stmt.setInt(1, this.id);
-            stmt.setInt(2, post.GetID());
-            stmt.setInt(3, voteValue);
-            stmt.executeUpdate();
+            post.updateVotes(this, voteValue);
         }
         else if(voteable instanceof Comment) {
             Comment comment = (Comment) voteable;
-            if (comment.getID() <= 0)
-                return;
-            if (voteValue == 0) {
-                String sql = "DELETE FROM votes_comments WHERE (user_id = ? AND comment_id = ?)";
-                PreparedStatement stmt = Database.PrepareStatement(sql);
-                stmt.setInt(1, this.id);
-                stmt.setInt(2, comment.getID());
-                stmt.executeUpdate();
-                return;
-            }
-            String sql = "INSERT INTO votes_comments (user_id, comment_id, value) VALUES (?, ?, ?) ON DUPLICATE KEY UPDATE value = VALUES(value)";
-            PreparedStatement stmt = Database.PrepareStatement(sql);
-            stmt.setInt(1, this.id);
-            stmt.setInt(2, comment.getID());
-            stmt.setInt(3, voteValue);
-            stmt.executeUpdate();
+            comment.updateVote(this, voteValue);
         }
     }
 
-    public int CheckVote(Post post) throws SQLException {
-        String sql = "SELECT * FROM votes_posts WHERE (user_id = ? AND post_id = ?)";
-        PreparedStatement stmt = Database.PrepareStatement(sql);
-        stmt.setInt(1, this.id);
-        stmt.setInt(2, post.GetID());
-        ResultSet rs = stmt.executeQuery();
-        if(rs.next()) {
-            return rs.getInt("value");
+    public int CheckVote(Voteable voteable) throws SQLException {
+        if(voteable instanceof Post) {
+            Post post = (Post) voteable;
+            String sql = "SELECT * FROM votes_posts WHERE (user_id = ? AND post_id = ?)";
+            PreparedStatement stmt = Database.PrepareStatement(sql);
+            stmt.setInt(1, this.id);
+            stmt.setInt(2, post.GetID());
+            ResultSet rs = stmt.executeQuery();
+            if(rs.next()) {
+                return rs.getInt("value");
+            }
+        }
+        else if(voteable instanceof Comment) {
+            Comment comment = (Comment) voteable;
+            String sql = "SELECT * FROM votes_comments WHERE (user_id = ? AND comment_id = ?)";
+            PreparedStatement stmt = Database.PrepareStatement(sql);
+            stmt.setInt(1, this.id);
+            stmt.setInt(2, comment.getID());
+            ResultSet rs = stmt.executeQuery();
+            if(rs.next()) {
+                return rs.getInt("value");
+            }
         }
         return 0;
     }
 
-    //TODO: Setters will probably be useless, waiting to be removed.
     //TODO: SETTERS NOT IN CLASS DIAGRAM
     public void setUsername(String username) {
         if (username == null || username.isEmpty() || username.length() > 32)

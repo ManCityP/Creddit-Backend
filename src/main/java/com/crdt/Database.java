@@ -40,6 +40,7 @@ public abstract class Database {
 
     // TODO: MOVE A LOT OF THESE FUNCTIONS TO THEIR RESPECTIVE CLASSES!!!
     //TODO: UNTOUCHED IN CLASSDIAGRAM
+
     // BOOKMARK: Posts
     public static int InsertCategory(String category) throws SQLException {
         if(category.length() > 50)
@@ -54,7 +55,7 @@ public abstract class Database {
         return 0;
     }
 
-    public static ArrayList<Post> GetAllPosts() throws SQLException {
+    public static ArrayList<Post> GetAllPosts(String prompt) throws SQLException {
         ArrayList<Post> posts = new ArrayList<>();
         String sql = "SELECT * FROM posts ORDER BY id DESC";
         PreparedStatement stmt = PrepareStatement(sql);
@@ -94,10 +95,23 @@ public abstract class Database {
                     rs.getTimestamp("create_time"), rs.getTimestamp("edit_time"), votes, comments);
             posts.add(p);
         }
+        if(prompt != null && !prompt.isBlank()) {
+            prompt = prompt.toLowerCase();
+            ArrayList<Post> filteredPosts = new ArrayList<>();
+            for (Post post : posts) {
+                if (post.GetTitle().toLowerCase().contains(prompt) || post.GetCategories().contains(prompt) ||
+                        post.GetContent().toLowerCase().contains(prompt) ||
+                        post.GetAuthor().getUsername().toLowerCase().contains(prompt) ||
+                        post.GetSubcreddit().GetSubName().toLowerCase().contains(prompt)) {
+                    filteredPosts.add(post);
+                }
+            }
+            posts = filteredPosts;
+        }
         return posts;
     }
 
-    public static ArrayList<Post> GetAllPostsFilterSub(Subcreddit sub, int lastID) throws SQLException {
+    public static ArrayList<Post> GetAllPostsFilterSub(Subcreddit sub, String prompt, int lastID) throws SQLException {
         ArrayList<Post> posts = new ArrayList<>();
         String sql;
         if(lastID > 0)
@@ -144,10 +158,23 @@ public abstract class Database {
                     rs.getTimestamp("create_time"), rs.getTimestamp("edit_time"), votes, comments);
             posts.add(p);
         }
+        if(prompt != null && !prompt.isBlank()) {
+            prompt = prompt.toLowerCase();
+            ArrayList<Post> filteredPosts = new ArrayList<>();
+            for (Post post : posts) {
+                if (post.GetTitle().toLowerCase().contains(prompt) || post.GetCategories().contains(prompt) ||
+                        post.GetContent().toLowerCase().contains(prompt) ||
+                        post.GetAuthor().getUsername().toLowerCase().contains(prompt) ||
+                        post.GetSubcreddit().GetSubName().toLowerCase().contains(prompt)) {
+                    filteredPosts.add(post);
+                }
+            }
+            posts = filteredPosts;
+        }
         return posts;
     }
 
-    public static ArrayList<Post> GetAllPostsFilterUser(User author, int lastID) throws SQLException {
+    public static ArrayList<Post> GetAllPostsFilterUser(User author, String prompt, int lastID) throws SQLException {
         ArrayList<Post> posts = new ArrayList<>();
         String sql;
         if(lastID > 0)
@@ -193,6 +220,19 @@ public abstract class Database {
                     rs.getString("title"), rs.getString("content"), media, GetPostCategories(postid),
                     rs.getTimestamp("create_time"), rs.getTimestamp("edit_time"), votes, comments);
             posts.add(p);
+        }
+        if(prompt != null && !prompt.isBlank()) {
+            prompt = prompt.toLowerCase();
+            ArrayList<Post> filteredPosts = new ArrayList<>();
+            for (Post post : posts) {
+                if (post.GetTitle().toLowerCase().contains(prompt) || post.GetCategories().contains(prompt) ||
+                        post.GetContent().toLowerCase().contains(prompt) ||
+                        post.GetAuthor().getUsername().toLowerCase().contains(prompt) ||
+                        post.GetSubcreddit().GetSubName().toLowerCase().contains(prompt)) {
+                    filteredPosts.add(post);
+                }
+            }
+            posts = filteredPosts;
         }
         return posts;
     }

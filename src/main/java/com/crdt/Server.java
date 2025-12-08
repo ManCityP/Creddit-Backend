@@ -99,8 +99,12 @@ public class Server {
                         .registerSubtype(User.class, "user")
                         .registerSubtype(Post.class, "post")
                         .registerSubtype(Comment.class, "comment");
+        RuntimeTypeAdapterFactory<Voteable> voteableAdapter =
+                RuntimeTypeAdapterFactory.of(Voteable.class, "type")
+                        .registerSubtype(Post.class, "post")
+                        .registerSubtype(Comment.class, "comment");
 
-        gson = new GsonBuilder().registerTypeAdapterFactory(userAdapter).registerTypeAdapterFactory(reportableAdapter).create();
+        gson = new GsonBuilder().registerTypeAdapterFactory(userAdapter).registerTypeAdapterFactory(reportableAdapter).registerTypeAdapterFactory(voteableAdapter).create();
 
         // Enable CORS (for future frontend use)
         before((req, res) -> {
@@ -123,6 +127,20 @@ public class Server {
             try {
                 Post post = gson.fromJson(req.body(), Post.class);
                 post.create();
+                res.type("application/json");
+                return gson.toJson(Map.of("status", "ok"));
+            } catch (Exception e) {
+                e.printStackTrace(); // server log
+                res.status(500);
+                return gson.toJson(Map.of("status", "error", "message", e.getMessage()));
+            }
+        });
+
+        // Route: Edit Post
+        post("/post/edit", (req, res) -> {
+            try {
+                Post post = gson.fromJson(req.body(), Post.class);
+                post.update();
                 res.type("application/json");
                 return gson.toJson(Map.of("status", "ok"));
             } catch (Exception e) {
@@ -162,15 +180,15 @@ public class Server {
             }
         });
 
-        //Route: Post vote by user
-        post("/post/vote", (req, res) -> {
+        //Route: Post/Comment vote by user
+        post("/vote", (req, res) -> {
             try {
                 JsonObject json = gson.fromJson(req.body(), JsonObject.class);
                 User user = gson.fromJson(json.get("user"), User.class);
-                Post post = gson.fromJson(json.get("post"), Post.class);
+                Voteable voteable = gson.fromJson(json.get("voteable"), Voteable.class);
                 int value = gson.fromJson(json.get("value"), int.class);
 
-                user.vote(post, value);
+                user.vote(voteable, value);
                 res.type("application/json");
                 return gson.toJson(Map.of("status", "ok"));
             } catch (Exception e) {
@@ -186,13 +204,6 @@ public class Server {
             Post post = Database.GetPost(id);
             res.type("application/json");
             return gson.toJson(post);
-        });
-
-        // Route: Get all posts
-        get("/post/all", (req, res) -> {
-            ArrayList<Post> posts = Database.GetAllPosts();
-            res.type("application/json");
-            return gson.toJson(posts);
         });
 
         // Route: Get all categories
@@ -254,10 +265,10 @@ public class Server {
         });
 
         // Route: Update user info
-        post("/user/delete", (req, res) -> {
+        /*post("/user/delete", (req, res) -> {
             try {
                 User user = gson.fromJson(req.body(), User.class);
-                user.delete();
+                user.deactivate();
                 res.type("application/json");
                 return gson.toJson(Map.of("status", "ok"));
             } catch (Exception e) {
@@ -265,7 +276,7 @@ public class Server {
                 res.status(500);
                 return gson.toJson(Map.of("status", "error", "message", e.getMessage()));
             }
-        });
+        });*/
 
         //Route: Ban a user globally
         post("/user/ban", (req, res) -> {
@@ -275,7 +286,7 @@ public class Server {
                 User user = gson.fromJson(json.get("user"), User.class);
                 String reason = gson.fromJson(json.get("reason"), String.class);
 
-                admin.BanUser(user, reason);
+                admin.DeactivateUser(user, reason);
                 res.type("application/json");
                 return gson.toJson(Map.of("status", "ok"));
             } catch (Exception e) {
@@ -292,7 +303,7 @@ public class Server {
                 Admin admin = gson.fromJson(json.get("admin"), Admin.class);
                 User user = gson.fromJson(json.get("user"), User.class);
 
-                admin.UnbanUser(user);
+                admin.ActivateUser(user);
                 res.type("application/json");
                 return gson.toJson(Map.of("status", "ok"));
             } catch (Exception e) {
@@ -403,8 +414,9 @@ public class Server {
             JsonObject json = gson.fromJson(req.body(), JsonObject.class);
             User user = gson.fromJson(json.get("user"), User.class);
             Subcreddit sub = gson.fromJson(json.get("sub"), Subcreddit.class);
+            String prompt = gson.fromJson(json.get("prompt"), String.class);
             int lastPostID = gson.fromJson(json.get("lastID"), int.class);
-            ArrayList<Post> posts = Database.GetAllPostsFilterSub(sub, lastPostID);
+            ArrayList<Post> posts = Database.GetAllPostsFilterSub(sub, prompt, lastPostID);
             ArrayList<Integer> myVotes = new ArrayList<>();
             for(Post post : posts) {
                 if(user == null)
@@ -424,8 +436,9 @@ public class Server {
             JsonObject json = gson.fromJson(req.body(), JsonObject.class);
             User user = gson.fromJson(json.get("user"), User.class);
             User author = gson.fromJson(json.get("author"), User.class);
+            String prompt = gson.fromJson(json.get("prompt"), String.class);
             int lastPostID = gson.fromJson(json.get("lastID"), int.class);
-            ArrayList<Post> posts = Database.GetAllPostsFilterUser(author, lastPostID);
+            ArrayList<Post> posts = Database.GetAllPostsFilterUser(author, prompt, lastPostID);
             ArrayList<Integer> myVotes = new ArrayList<>();
             for(Post post : posts) {
                 if(user == null)
@@ -454,11 +467,11 @@ public class Server {
             }
         });
 
-        // Route: Edit Private message
-        post("/pm/edit", (req, res) -> {
+        //Route: Delete Private Message
+        post("/pm/delete", (req, res) -> {
             try {
-                Message msg = gson.fromJson(req.body(), Message.class);
-                msg.update();
+                Message message = gson.fromJson(req.body(), Message.class);
+                message.delete();
                 res.type("application/json");
                 return gson.toJson(Map.of("status", "ok"));
             } catch (Exception e) {
@@ -480,8 +493,8 @@ public class Server {
         post("/user/checkvote", (req, res) -> {
             JsonObject json = gson.fromJson(req.body(), JsonObject.class);
             User user = gson.fromJson(json.get("user"), User.class);
-            Post post = gson.fromJson(json.get("post"), Post.class);
-            int vote = user.CheckVote(post);
+            Voteable voteable = gson.fromJson(json.get("voteable"), Voteable.class);
+            int vote = user.CheckVote(voteable);
             res.type("application/json");
             return gson.toJson(vote);
         });
@@ -570,13 +583,6 @@ public class Server {
             }
         });
 
-        // Route: Get all users
-        get("/user/all", (req, res) -> {
-            ArrayList<User> users = Database.GetAllUsers();
-            res.type("application/json");
-            return gson.toJson(users);
-        });
-
 
 
 
@@ -586,24 +592,6 @@ public class Server {
             try {
                 Comment comment = gson.fromJson(req.body(), Comment.class);
                 comment.create();
-                res.type("application/json");
-                return gson.toJson(Map.of("status", "ok"));
-            } catch (Exception e) {
-                e.printStackTrace(); // server log
-                res.status(500);
-                return gson.toJson(Map.of("status", "error", "message", e.getMessage()));
-            }
-        });
-
-        //Route: Comment vote by user
-        post("/comment/vote", (req, res) -> {
-            try {
-                JsonObject json = gson.fromJson(req.body(), JsonObject.class);
-                User user = gson.fromJson(json.get("user"), User.class);
-                Comment comment = gson.fromJson(json.get("comment"), Comment.class);
-                int value = gson.fromJson(json.get("value"), int.class);
-
-                user.vote(comment, value);
                 res.type("application/json");
                 return gson.toJson(Map.of("status", "ok"));
             } catch (Exception e) {
@@ -637,6 +625,20 @@ public class Server {
             try {
                 Subcreddit subcreddit = gson.fromJson(req.body(), Subcreddit.class);
                 subcreddit.create();
+                res.type("application/json");
+                return gson.toJson(Map.of("status", "ok"));
+            } catch (Exception e) {
+                e.printStackTrace(); // server log
+                res.status(500);
+                return gson.toJson(Map.of("status", "error", "message", e.getMessage()));
+            }
+        });
+
+        // Route: Edit Subcreddit
+        post("/subcreddit/edit", (req, res) -> {
+            try {
+                Subcreddit subcreddit = gson.fromJson(req.body(), Subcreddit.class);
+                subcreddit.update();
                 res.type("application/json");
                 return gson.toJson(Map.of("status", "ok"));
             } catch (Exception e) {
@@ -771,7 +773,7 @@ public class Server {
         post("/report/submit", (req, res) -> {
             try {
                 Report report = gson.fromJson(req.body(), Report.class);
-                report.SubmitReport();
+                report.getReporter().addReport(report);
                 res.type("application/json");
                 return gson.toJson(Map.of("status", "ok"));
             } catch (Exception e) {

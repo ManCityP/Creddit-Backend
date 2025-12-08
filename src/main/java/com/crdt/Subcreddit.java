@@ -18,7 +18,7 @@ public class Subcreddit {
     private boolean isPrivate;
 
 
-    public Subcreddit(int id, String name, String description, Timestamp timecreated, User creator,  Media logo, boolean isPrivate){
+    public Subcreddit(int id, String name, String description, Timestamp timecreated, User creator,  Media logo, boolean isPrivate) {
         this.id = id;
         this.name = name;
         this.timecreated = timecreated;
@@ -39,6 +39,16 @@ public class Subcreddit {
         stmt.setInt(5, this.isPrivate? 1 : 0);
         stmt.executeUpdate();
         this.creator.joinSubcreddit(this);
+    }
+
+    public void update() throws SQLException {
+        String sql = "UPDATE subcreddits SET name = ?, description = ?, logo = ?, private = ? WHERE id = ?";
+        PreparedStatement stmt = Database.PrepareStatement(sql);
+        stmt.setString(1, this.name);
+        stmt.setString(2, this.description);
+        stmt.setString(3, this.subLogo.GetURL());
+        stmt.setInt(4, this.isPrivate? 1 : 0);
+        stmt.executeUpdate();
     }
 
     public void delete() throws SQLException {
