@@ -184,6 +184,10 @@ public class User implements Reportable {
         boolean subcredditMatch = false, userFollowMatch = false;
         int categoryMatch = 0;
         for(Post post : posts) {
+            if(post.GetAuthor().id == this.id && post.GetTimeCreated().toInstant().isAfter(Instant.now().minusSeconds(60))) {
+                postScores.put(post.GetID(), Double.MAX_VALUE);
+                continue;
+            }
             for(Subcreddit sub : subs) {
                 if (sub.GetSubId() == post.GetID()) {
                     subcredditMatch = true;
@@ -191,7 +195,7 @@ public class User implements Reportable {
                 }
             }
             for(User user : followers) {
-                if(user.id == post.GetAuthor().id) {
+                if(user.id == post.GetAuthor().id || this.id == post.GetAuthor().id) {
                     userFollowMatch = true;
                     break;
                 }

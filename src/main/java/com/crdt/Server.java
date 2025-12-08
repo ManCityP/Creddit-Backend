@@ -3,9 +3,11 @@ package com.crdt;
 import static spark.Spark.*;
 
 import com.crdt.users.Admin;
+import com.crdt.users.Gender;
 import com.crdt.users.Moderator;
 import com.crdt.users.User;
 import com.google.gson.*;
+import com.google.gson.reflect.TypeToken;
 import com.google.gson.typeadapters.RuntimeTypeAdapterFactory;
 import jakarta.mail.*;
 import jakarta.mail.internet.InternetAddress;
@@ -13,6 +15,7 @@ import jakarta.mail.internet.MimeMessage;
 
 import javax.servlet.MultipartConfigElement;
 import java.io.*;
+import java.lang.reflect.Type;
 import java.nio.file.*;
 import java.sql.SQLException;
 import java.util.*;
@@ -66,6 +69,8 @@ public class Server {
         Files.createDirectories(Paths.get(UPLOAD_DIR));
         //staticFiles.externalLocation(UPLOAD_DIR);
         System.out.println("Serving uploaded files from: " + UPLOAD_DIR);
+
+        Type userListType = new TypeToken<ArrayList<User>>() {}.getType();
 
         new Thread(() -> {
             while (true) {
@@ -369,7 +374,7 @@ public class Server {
             User user = gson.fromJson(req.body(), User.class);
             ArrayList<User> users = user.GetFriends();
             res.type("application/json");
-            return gson.toJson(users);
+            return gson.toJson(users, userListType);
         });
 
         // Route: Get user's sent friend requests
@@ -377,7 +382,7 @@ public class Server {
             User user = gson.fromJson(req.body(), User.class);
             ArrayList<User> users = user.GetSentFriendRequests();
             res.type("application/json");
-            return gson.toJson(users);
+            return gson.toJson(users, userListType);
         });
 
         // Route: Get user's received friend requests
@@ -385,7 +390,7 @@ public class Server {
             User user = gson.fromJson(req.body(), User.class);
             ArrayList<User> users = user.GetReceivedFriendRequests();
             res.type("application/json");
-            return gson.toJson(users);
+            return gson.toJson(users, userListType);
         });
 
         // Route: Get user's post feed
@@ -560,7 +565,7 @@ public class Server {
             int id = Integer.parseInt(req.queryParams("id"));
             User user = Database.GetUser(id);
             res.type("application/json");
-            return gson.toJson(user);
+            return gson.toJson(user, User.class);
         });
 
         // Route: login user
@@ -572,7 +577,7 @@ public class Server {
                 if(user != null)
                     user.KeepAlive();
                 res.type("application/json");
-                return gson.toJson(user);
+                return gson.toJson(user, User.class);
             }
             catch (SQLException e) {
                 if(e.getMessage().equalsIgnoreCase("online"))
@@ -738,7 +743,7 @@ public class Server {
             Subcreddit subcreddit = gson.fromJson(req.body(), Subcreddit.class);
             ArrayList<User> bannedMembers = subcreddit.GetBannedMembers();
             res.type("application/json");
-            return gson.toJson(bannedMembers);
+            return gson.toJson(bannedMembers, userListType);
         });
 
         // Route: Get subcreddit bans
@@ -842,6 +847,15 @@ public class Server {
             res.type("application/json");
             return gson.toJson(reports);
         });
+
+        // TODO: Add gets for reports and report feed
+        // Route: Get a specific subcreddit
+        /*get("/report", (req, res) -> {
+            int id = Integer.parseInt(req.queryParams("id"));
+            //Report report = Database.GetReport(id);
+            res.type("application/json");
+            return gson.toJson(report);
+        });*/
 
 
 
