@@ -41,6 +41,7 @@ public class Comment implements Voteable, Reportable {
         stmt.executeUpdate();
     }
 
+    //TODO: Make this not delete, but delete contents only (probably a deleted tinyint)
     public void delete() throws SQLException {
         String sql = "DELETE FROM comments WHERE id = ?";
         PreparedStatement stmt = Database.PrepareStatement(sql);

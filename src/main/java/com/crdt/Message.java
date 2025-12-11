@@ -51,6 +51,7 @@ public class Message {
         stmt.executeUpdate();
     }
 
+    //TODO: Make it not delete, but add deleted TINYINT
     public void delete() throws SQLException {
         String sql = "DELETE FROM messages WHERE id = ?";
         PreparedStatement stmt = Database.PrepareStatement(sql);

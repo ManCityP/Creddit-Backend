@@ -406,6 +406,7 @@ public class User implements Reportable {
         return messages;
     }
 
+    //TODO: This function might be useless now
     public ArrayList<Message> GetLatestPrivateMessages(User friend, int lastMessageID) throws SQLException {
         ArrayList<Message> messages = new ArrayList<>();
         int id1 = this.id;
@@ -426,18 +427,14 @@ public class User implements Reportable {
         return messages;
     }
 
-    public ArrayList<Message> GetUnreadPrivateMessages(User friend) throws SQLException {
+    public ArrayList<Message> GetUnreadPrivateMessages() throws SQLException {
         ArrayList<Message> messages = new ArrayList<>();
-        int id1 = this.id;
-        int id2 = friend.id;
-        String sql = "SELECT * FROM messages ORDER BY id ASC WHERE (sender_id = ? AND receiver_id = ?) OR (sender_id = ? AND receiver_id = ?) AND read = 0";
+        String sql = "SELECT * FROM messages ORDER BY id DESC WHERE receiver_id = ? AND read = 0";
         PreparedStatement stmt = Database.PrepareStatement(sql);
-        stmt.setInt(1, id1); stmt.setInt(2, id2);
-        stmt.setInt(3, id2); stmt.setInt(4, id1);
+        stmt.setInt(3, this.id);
         ResultSet rs = stmt.executeQuery();
         while(rs.next()) {
-            int sender_id = rs.getInt("sender_id");
-            messages.add(new Message(rs.getInt("id"), sender_id == id1? this : friend, sender_id == id1? friend : this,
+            messages.add(new Message(rs.getInt("id"), Database.GetUser(rs.getInt("sender_id")), this,
                     rs.getString("content"), new Media(MediaType.from(rs.getString("media_type")), rs.getString("media_url")),
                     rs.getTimestamp("create_time"), rs.getTimestamp("edit_time"), rs.getInt("read") != 0
             ));

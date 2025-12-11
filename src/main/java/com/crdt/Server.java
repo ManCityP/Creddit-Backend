@@ -507,20 +507,18 @@ public class Server {
         // Route: Get user's private message feed
         post("/pm/feed", (req, res) -> {
             JsonObject json = gson.fromJson(req.body(), JsonObject.class);
-            User user1 = gson.fromJson(json.get("user1"), User.class);
-            User user2 = gson.fromJson(json.get("user2"), User.class);
+            User user = gson.fromJson(json.get("user"), User.class);
+            User friend = gson.fromJson(json.get("friend"), User.class);
             int lastMessageID = gson.fromJson(json.get("lastID"), int.class);
-            ArrayList<Message> messages = user1.GetPrivateMessageFeed(user2, lastMessageID);
+            ArrayList<Message> messages = user.GetPrivateMessageFeed(friend, lastMessageID);
             res.type("application/json");
             return gson.toJson(messages);
         });
 
         // Route: Get user's unread private message
         post("/pm/unread", (req, res) -> {
-            JsonObject json = gson.fromJson(req.body(), JsonObject.class);
-            User user1 = gson.fromJson(json.get("user1"), User.class);
-            User user2 = gson.fromJson(json.get("user2"), User.class);
-            ArrayList<Message> messages = user1.GetUnreadPrivateMessages(user2);
+            User user = gson.fromJson(req.body(), User.class);
+            ArrayList<Message> messages = user.GetUnreadPrivateMessages();
             res.type("application/json");
             return gson.toJson(messages);
         });
@@ -538,12 +536,19 @@ public class Server {
 
         // Route: Set messages to read
         post("/pm/read", (req, res) -> {
-            JsonObject json = gson.fromJson(req.body(), JsonObject.class);
-            User user1 = gson.fromJson(json.get("user1"), User.class);
-            User user2 = gson.fromJson(json.get("user2"), User.class);
-            user1.ReadMessages(user2);
-            res.type("application/json");
-            return gson.toJson(Map.of("status", "ok"));
+            try {
+                JsonObject json = gson.fromJson(req.body(), JsonObject.class);
+                User user = gson.fromJson(json.get("user"), User.class);
+                User friend = gson.fromJson(json.get("friend"), User.class);
+                user.ReadMessages(friend);
+                res.type("application/json");
+                return gson.toJson(Map.of("status", "ok"));
+            }
+            catch (Exception e) {
+                e.printStackTrace();
+                res.status(500);
+                return gson.toJson(Map.of("status", "error", "message", e.getMessage()));
+            }
         });
 
         // Route: Keep the user session alive
