@@ -288,6 +288,15 @@ public class User implements Reportable {
         stmt.executeUpdate();
     }
 
+
+    public void updateSubcreddit(Subcreddit subcreddit) throws SQLException {
+        //TODO: update the created subcreddit (there is already a delete function in SUBCREDDIT CLASS just need to link this to that)
+    }
+
+    public void removeSubcreddit(Subcreddit subcreddit) throws SQLException {
+        //TODO: same thing with the update
+    }
+
     public ArrayList<Subcreddit> GetSubcreddits() throws SQLException {
         ArrayList<Subcreddit> subcreddits = new ArrayList<>();
 
