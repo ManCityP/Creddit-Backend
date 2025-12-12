@@ -131,9 +131,9 @@ public class Server {
         post("/post/create", (req, res) -> {
             try {
                 Post post = gson.fromJson(req.body(), Post.class);
-                post.create();
+                int id = post.create();
                 res.type("application/json");
-                return gson.toJson(Map.of("status", "ok"));
+                return gson.toJson(id, int.class);
             } catch (Exception e) {
                 e.printStackTrace(); // server log
                 res.status(500);
@@ -634,9 +634,9 @@ public class Server {
         post("/subcreddit/create", (req, res) -> {
             try {
                 Subcreddit subcreddit = gson.fromJson(req.body(), Subcreddit.class);
-                subcreddit.create();
+                int id = subcreddit.create();
                 res.type("application/json");
-                return gson.toJson(Map.of("status", "ok"));
+                return gson.toJson(id, int.class);
             } catch (Exception e) {
                 e.printStackTrace(); // server log
                 res.status(500);

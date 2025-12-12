@@ -28,18 +28,27 @@ public class Subcreddit {
         this.isPrivate = isPrivate;
     }
 
-    public void create() throws SQLException {
+    public int create() throws SQLException {
         String sql = "INSERT INTO subcreddits (name, description, creator_id, logo, private) VALUES (?, ?, ?, ?, ?)";
         if(subLogo == null)
             subLogo = new Media(MediaType.IMAGE, "");
-        PreparedStatement stmt = Database.PrepareStatement(sql);
+        PreparedStatement stmt = Database.PrepareStatement(sql, true);
         stmt.setString(1, this.name);
         stmt.setString(2, this.description);
         stmt.setInt(3, this.creator.getId());
         stmt.setString(4, this.subLogo.GetURL());
         stmt.setInt(5, this.isPrivate? 1 : 0);
         stmt.executeUpdate();
+        ResultSet rs = stmt.getGeneratedKeys();
+        int genID = -1;
+        if(rs.next()) {
+            genID = rs.getInt(1);
+        }
+        if(genID <= 0)
+            throw new SQLException("Could not create subcreddit!");
+        this.id = genID;
         this.creator.joinSubcreddit(this);
+        return genID;
     }
 
     public void update() throws SQLException {

@@ -43,7 +43,7 @@ public class Post implements Voteable, Reportable {
         this.comments = comments;
     }
 
-    public void create() throws SQLException {
+    public int create() throws SQLException {
         String sql = "INSERT INTO posts (author_id, subcreddit_id, title, content) VALUES (?, ?, ?, ?)";
         PreparedStatement stmt = Database.PrepareStatement(sql, true);
         stmt.setInt(1, this.author.getId());
@@ -86,6 +86,7 @@ public class Post implements Voteable, Reportable {
                 }
             }
         }
+        return genID;
     }
 
     // TODO: Do this like a normal human being
