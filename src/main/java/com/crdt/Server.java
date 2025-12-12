@@ -743,6 +743,14 @@ public class Server {
             }
         });
 
+        // Route: Get subcreddit members
+        post("/subcreddit/members", (req, res) -> {
+            Subcreddit subcreddit = gson.fromJson(req.body(), Subcreddit.class);
+            ArrayList<User> members = subcreddit.GetMembers();
+            res.type("application/json");
+            return gson.toJson(members, userListType);
+        });
+
         // Route: Get subcreddit bans
         post("/subcreddit/bans", (req, res) -> {
             Subcreddit subcreddit = gson.fromJson(req.body(), Subcreddit.class);

@@ -18,13 +18,14 @@ public class Subcreddit {
     private boolean isPrivate;
 
 
-    public Subcreddit(int id, String name, String description, Timestamp timecreated, User creator,  Media logo, boolean isPrivate) {
+    public Subcreddit(int id, String name, String description, Timestamp timecreated, User creator,  Media logo, boolean isPrivate){
         this.id = id;
         this.name = name;
+        this.description = description;
         this.timecreated = timecreated;
-        this.isPrivate = isPrivate;
         this.creator = creator;
         this.subLogo = logo;
+        this.isPrivate = isPrivate;
     }
 
     public void create() throws SQLException {
@@ -113,14 +114,6 @@ public class Subcreddit {
 
     public boolean GetPrivate() {
         return isPrivate;
-    }
-
-    void UpdateDescription (String description){
-        this.description = description;
-    }
-
-     void UpdateLogo (Media logo){
-        this.subLogo = logo;
     }
 
     @Override
