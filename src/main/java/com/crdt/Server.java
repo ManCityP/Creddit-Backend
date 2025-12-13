@@ -283,6 +283,23 @@ public class Server {
             }
         });*/
 
+        //Route: Check if a user is a member
+        post("/user/ismember", (req, res) -> {
+            try {
+                JsonObject json = gson.fromJson(req.body(), JsonObject.class);
+                User user = gson.fromJson(json.get("user"), User.class);
+                Subcreddit sub = gson.fromJson(json.get("subcreddit"), Subcreddit.class);
+
+                boolean isMember = user.isMember(sub);
+                res.type("application/json");
+                return gson.toJson(isMember, boolean.class);
+            } catch (Exception e) {
+                e.printStackTrace(); // server log
+                res.status(500);
+                return gson.toJson(Map.of("status", "error", "message", e.getMessage()));
+            }
+        });
+
         //Route: Ban a user globally
         post("/user/ban", (req, res) -> {
             try {
@@ -399,7 +416,13 @@ public class Server {
             User user = gson.fromJson(json.get("user"), User.class);
             String prompt = gson.fromJson(json.get("prompt"), String.class);
             int lastPostID = gson.fromJson(json.get("lastID"), int.class);
-            ArrayList<Post> posts = User.GetPostFeed(user, prompt, lastPostID);
+            ArrayList<Post> posts = new ArrayList<>();
+            try {
+                posts = User.GetPostFeed(user, prompt, lastPostID);
+            }
+            catch (Exception e) {
+                e.printStackTrace();
+            }
             ArrayList<Integer> myVotes = new ArrayList<>();
             for(Post post : posts) {
                 if(user == null)
@@ -647,8 +670,10 @@ public class Server {
         // Route: Edit Subcreddit
         post("/subcreddit/edit", (req, res) -> {
             try {
-                Subcreddit subcreddit = gson.fromJson(req.body(), Subcreddit.class);
-                subcreddit.update();
+                JsonObject json = gson.fromJson(req.body(), JsonObject.class);
+                User user = gson.fromJson(json.get("user"), User.class);
+                Subcreddit sub = gson.fromJson(json.get("subcreddit"), Subcreddit.class);
+                user.updateSubcreddit(sub);
                 res.type("application/json");
                 return gson.toJson(Map.of("status", "ok"));
             } catch (Exception e) {
@@ -661,8 +686,10 @@ public class Server {
         //Route: Delete subcreddit
         post("/subcreddit/delete", (req, res) -> {
             try {
-                Subcreddit subcreddit = gson.fromJson(req.body(), Subcreddit.class);
-                subcreddit.delete();
+                JsonObject json = gson.fromJson(req.body(), JsonObject.class);
+                User user = gson.fromJson(json.get("user"), User.class);
+                Subcreddit sub = gson.fromJson(json.get("subcreddit"), Subcreddit.class);
+                user.deleteSubcreddit(sub);
                 res.type("application/json");
                 return gson.toJson(Map.of("status", "ok"));
             } catch (Exception e) {
@@ -762,10 +789,10 @@ public class Server {
         // Route: Get subcreddit bans
         post("/subcreddit/verifymod", (req, res) -> {
             JsonObject json = gson.fromJson(req.body(), JsonObject.class);
-            Moderator moderator = gson.fromJson(json.get("moderator"), Moderator.class);
+            User user = gson.fromJson(json.get("user"), User.class);
             Subcreddit sub = gson.fromJson(json.get("subcreddit"), Subcreddit.class);
             res.type("application/json");
-            return gson.toJson(moderator.VerifyModeration(sub));
+            return gson.toJson(sub.VerifyModeration(user), boolean.class);
         });
 
         // Route: Get a specific subcreddit

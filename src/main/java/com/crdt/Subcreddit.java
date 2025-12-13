@@ -1,5 +1,6 @@
 package com.crdt;
 
+import com.crdt.users.Moderator;
 import com.crdt.users.User;
 
 import java.sql.PreparedStatement;
@@ -70,15 +71,41 @@ public class Subcreddit {
 
     public ArrayList<User> GetMembers() throws SQLException {
         ArrayList<User> members = new ArrayList<>();
-        String sql = "SELECT * FROM subcreddit_members ORDER BY id DESC WHERE (accepted = 1 AND subcreddit_id = ?)";
+        String sql = "SELECT * FROM subcreddit_members WHERE (accepted = 1 AND subcreddit_id = ?) ORDER BY id DESC";
 
         PreparedStatement stmt = Database.PrepareStatement(sql);
         stmt.setInt(1, this.id);
         ResultSet rs = stmt.executeQuery();
         while (rs.next()) {
-            members.add(Database.GetUser(rs.getInt("user_id")));
+            User member = Database.GetUser(rs.getInt("user_id"));
+            if(VerifyModeration(member))
+                members.add(new Moderator(member));
+            else
+                members.add(member);
         }
         return members;
+    }
+
+    public User GetFirstModerator() throws SQLException {
+        String sql = "SELECT * FROM subcreddit_moderators WHERE subcreddit_id = ? ORDER BY create_time ASC";
+
+        PreparedStatement stmt = Database.PrepareStatement(sql);
+        stmt.setInt(1, this.id);
+        ResultSet rs = stmt.executeQuery();
+        if(rs.next())
+            return Database.GetUser(rs.getInt("user_id"));
+        return GetFirstMember();
+    }
+
+    public User GetFirstMember() throws SQLException {
+        String sql = "SELECT * FROM subcreddit_members WHERE (accepted = 1 AND subcreddit_id = ?) ORDER BY id ASC";
+
+        PreparedStatement stmt = Database.PrepareStatement(sql);
+        stmt.setInt(1, this.id);
+        ResultSet rs = stmt.executeQuery();
+        if(rs.next())
+            return Database.GetUser(rs.getInt("user_id"));
+        return null;
     }
 
     public ArrayList<User> GetBannedMembers() throws SQLException {
@@ -86,7 +113,7 @@ public class Subcreddit {
             return null;
 
         ArrayList<User> bannedMembers = new ArrayList<>();
-        String sql = "SELECT * FROM bans ORDER BY id DESC WHERE (subcreddit_id = ?)";
+        String sql = "SELECT * FROM bans WHERE (subcreddit_id = ?) ORDER BY id DESC";
 
         PreparedStatement stmt = Database.PrepareStatement(sql);
         stmt.setInt(1, this.id);
@@ -95,6 +122,18 @@ public class Subcreddit {
             bannedMembers.add(Database.GetUser(rs.getInt("user_id")));
         }
         return bannedMembers;
+    }
+
+    public boolean VerifyModeration(User user) throws SQLException {
+        if(this.GetCreator().equals(user))
+            return true;
+        String sql = "SELECT * FROM subcreddit_moderators WHERE (subcreddit_id = ? AND user_id = ?)";
+
+        PreparedStatement stmt = Database.PrepareStatement(sql);
+        stmt.setInt(1, this.id);
+        stmt.setInt(2, user.getId());
+        ResultSet rs = stmt.executeQuery();
+        return rs.next();
     }
 
     public int GetSubId() {
@@ -115,6 +154,9 @@ public class Subcreddit {
 
     public User GetCreator() {
         return creator;
+    }
+    public void SetCreator(User creator) {
+        this.creator = creator;
     }
 
      public Media GetLogo() {

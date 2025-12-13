@@ -148,6 +148,16 @@ public class User implements Reportable {
         PreparedStatement stmt = Database.PrepareStatement(sql);
         stmt.setInt(1, this.id);
         stmt.executeUpdate();
+        ArrayList<Subcreddit> subcreddits = this.GetOwnedSubcreddits();
+        for(Subcreddit sub : subcreddits) {
+            User newOwner = sub.GetFirstModerator();
+            if(newOwner == null)
+                sub.delete();
+            else {
+                sub.SetCreator(newOwner);
+                sub.update();
+            }
+        }
     }
 
     public void activate() throws SQLException {
@@ -279,7 +289,7 @@ public class User implements Reportable {
     }
 
     public void leaveSubcreddit(Subcreddit subcreddit) throws SQLException {
-        if(!this.active || subcreddit == null || subcreddit.GetSubId() <= 0)
+        if(!this.active || subcreddit == null || subcreddit.GetSubId() <= 0 || subcreddit.GetCreator().equals(this))
             return;
         String sql = "DELETE FROM subcreddit_members WHERE (user_id = ? AND subcreddit_id = ?)";
         PreparedStatement stmt = Database.PrepareStatement(sql);
@@ -288,13 +298,26 @@ public class User implements Reportable {
         stmt.executeUpdate();
     }
 
-
-    public void updateSubcreddit(Subcreddit subcreddit) throws SQLException {
-        //TODO: update the created subcreddit (there is already a delete function in SUBCREDDIT CLASS just need to link this to that)
+    public boolean isMember(Subcreddit sub) throws SQLException {
+        if(!this.active || sub == null || sub.GetSubId() <= 0)
+            return false;
+        String sql = "SELECT * FROM subcreddit_members WHERE (user_id = ? AND subcreddit_id = ?)";
+        PreparedStatement stmt = Database.PrepareStatement(sql);
+        stmt.setInt(1, this.id);
+        stmt.setInt(2, sub.GetSubId());
+        ResultSet rs = stmt.executeQuery();
+        return rs.next();
     }
 
-    public void removeSubcreddit(Subcreddit subcreddit) throws SQLException {
-        //TODO: same thing with the update
+
+    public void updateSubcreddit(Subcreddit subcreddit) throws SQLException {
+        if(subcreddit.GetCreator().equals(this))
+            subcreddit.update();
+    }
+
+    public void deleteSubcreddit(Subcreddit subcreddit) throws SQLException {
+        if(subcreddit.GetCreator().equals(this) || this instanceof Admin)
+            subcreddit.delete();
     }
 
     public ArrayList<Subcreddit> GetSubcreddits() throws SQLException {
@@ -306,6 +329,21 @@ public class User implements Reportable {
         ResultSet rs = stmt.executeQuery();
         while (rs.next()) {
             subcreddits.add(Database.GetSubcreddit(rs.getInt("subcreddit_id")));
+        }
+        return subcreddits;
+    }
+
+    public ArrayList<Subcreddit> GetOwnedSubcreddits() throws SQLException {
+        ArrayList<Subcreddit> subcreddits = new ArrayList<>();
+
+        String sql = "SELECT * FROM subcreddits WHERE creator_id = ? ORDER BY create_time DESC";
+        PreparedStatement stmt = Database.PrepareStatement(sql);
+        stmt.setInt(1, this.id);
+        ResultSet rs = stmt.executeQuery();
+        while (rs.next()) {
+            subcreddits.add(new Subcreddit(rs.getInt("id"), rs.getString("name"), rs.getString("description"),
+                    rs.getTimestamp("create_time"), this, new Media(MediaType.IMAGE, rs.getString("logo")),
+                    rs.getInt("private") == 1));
         }
         return subcreddits;
     }

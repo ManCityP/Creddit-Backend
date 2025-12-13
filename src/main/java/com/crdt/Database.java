@@ -62,6 +62,21 @@ public abstract class Database {
         ResultSet rs = stmt.executeQuery();
         while (rs.next()) {
             int postid = rs.getInt("id");
+            ArrayList<String> categories = GetPostCategories(postid);
+
+            String title = rs.getString("title");
+            String content = rs.getString("content");
+            User author = GetUser(rs.getInt("author_id"));
+            Subcreddit sub = GetSubcreddit(rs.getInt("subcreddit_id"));
+            if(prompt != null && !prompt.isBlank()) {
+                prompt = prompt.toLowerCase();
+                if (!title.toLowerCase().contains(prompt) && !categories.contains(prompt) && !content.toLowerCase().contains(prompt)
+                        && !author.getUsername().toLowerCase().contains(prompt) && (sub == null || !sub.GetSubName().toLowerCase().contains(prompt)))
+                {
+                    continue;
+                }
+            }
+
             ArrayList<Media> media = new ArrayList<>();
 
             String sql2 = "SELECT * FROM post_media WHERE (post_id = ?) ORDER BY id ASC";
@@ -90,29 +105,16 @@ public abstract class Database {
                 comments = rs4.getInt("count");
 
             }
-            Post p = new Post(postid, GetUser(rs.getInt("author_id")), GetSubcreddit(rs.getInt("subcreddit_id")),
-                    rs.getString("title"), rs.getString("content"), media, GetPostCategories(postid),
-                    rs.getTimestamp("create_time"), rs.getTimestamp("edit_time"), votes, comments);
+            Post p = new Post(postid, author, sub, title, content, media, categories, rs.getTimestamp("create_time"), rs.getTimestamp("edit_time"), votes, comments);
             posts.add(p);
-        }
-        if(prompt != null && !prompt.isBlank()) {
-            prompt = prompt.toLowerCase();
-            ArrayList<Post> filteredPosts = new ArrayList<>();
-            for (Post post : posts) {
-                if (post.GetTitle().toLowerCase().contains(prompt) || post.GetCategories().contains(prompt) ||
-                        post.GetContent().toLowerCase().contains(prompt) ||
-                        post.GetAuthor().getUsername().toLowerCase().contains(prompt) ||
-                        post.GetSubcreddit().GetSubName().toLowerCase().contains(prompt)) {
-                    filteredPosts.add(post);
-                }
-            }
-            posts = filteredPosts;
         }
         return posts;
     }
 
     public static ArrayList<Post> GetAllPostsFilterSub(Subcreddit sub, String prompt, int lastID) throws SQLException {
         ArrayList<Post> posts = new ArrayList<>();
+        if(sub == null)
+            return posts;
         String sql;
         if(lastID > 0)
             sql = "SELECT * FROM posts WHERE subcreddit_id = ? AND id < ? ORDER BY id DESC LIMIT 6";
@@ -125,6 +127,20 @@ public abstract class Database {
         ResultSet rs = stmt.executeQuery();
         while (rs.next()) {
             int postid = rs.getInt("id");
+            ArrayList<String> categories = GetPostCategories(postid);
+
+            String title = rs.getString("title");
+            String content = rs.getString("content");
+            User author = GetUser(rs.getInt("author_id"));
+            if(prompt != null && !prompt.isBlank()) {
+                prompt = prompt.toLowerCase();
+                if (!title.toLowerCase().contains(prompt) && !categories.contains(prompt) && !content.toLowerCase().contains(prompt)
+                        && !author.getUsername().toLowerCase().contains(prompt) && !sub.GetSubName().toLowerCase().contains(prompt))
+                {
+                    continue;
+                }
+            }
+
             ArrayList<Media> media = new ArrayList<>();
 
             String sql2 = "SELECT * FROM post_media WHERE (post_id = ?) ORDER BY id ASC";
@@ -153,29 +169,15 @@ public abstract class Database {
                 comments = rs4.getInt("count");
 
             }
-            Post p = new Post(postid, GetUser(rs.getInt("author_id")), GetSubcreddit(rs.getInt("subcreddit_id")),
-                    rs.getString("title"), rs.getString("content"), media, GetPostCategories(postid),
-                    rs.getTimestamp("create_time"), rs.getTimestamp("edit_time"), votes, comments);
-            posts.add(p);
-        }
-        if(prompt != null && !prompt.isBlank()) {
-            prompt = prompt.toLowerCase();
-            ArrayList<Post> filteredPosts = new ArrayList<>();
-            for (Post post : posts) {
-                if (post.GetTitle().toLowerCase().contains(prompt) || post.GetCategories().contains(prompt) ||
-                        post.GetContent().toLowerCase().contains(prompt) ||
-                        post.GetAuthor().getUsername().toLowerCase().contains(prompt) ||
-                        post.GetSubcreddit().GetSubName().toLowerCase().contains(prompt)) {
-                    filteredPosts.add(post);
-                }
-            }
-            posts = filteredPosts;
+            posts.add(new Post(postid, author, sub, title, content, media, categories, rs.getTimestamp("create_time"), rs.getTimestamp("edit_time"), votes, comments));
         }
         return posts;
     }
 
     public static ArrayList<Post> GetAllPostsFilterUser(User author, String prompt, int lastID) throws SQLException {
         ArrayList<Post> posts = new ArrayList<>();
+        if(author == null)
+            return posts;
         String sql;
         if(lastID > 0)
             sql = "SELECT * FROM posts WHERE author_id = ? AND id < ? ORDER BY id DESC LIMIT 6";
@@ -188,6 +190,20 @@ public abstract class Database {
         ResultSet rs = stmt.executeQuery();
         while (rs.next()) {
             int postid = rs.getInt("id");
+            ArrayList<String> categories = GetPostCategories(postid);
+
+            String title = rs.getString("title");
+            String content = rs.getString("content");
+            Subcreddit sub = GetSubcreddit(rs.getInt("subcreddit_id"));
+            if(prompt != null && !prompt.isBlank()) {
+                prompt = prompt.toLowerCase();
+                if (!title.toLowerCase().contains(prompt) && !categories.contains(prompt) && !content.toLowerCase().contains(prompt)
+                        && !author.getUsername().toLowerCase().contains(prompt) && (sub == null || !sub.GetSubName().toLowerCase().contains(prompt)))
+                {
+                    continue;
+                }
+            }
+
             ArrayList<Media> media = new ArrayList<>();
 
             String sql2 = "SELECT * FROM post_media WHERE (post_id = ?) ORDER BY id ASC";
@@ -216,10 +232,7 @@ public abstract class Database {
                 comments = rs4.getInt("count");
 
             }
-            Post p = new Post(postid, GetUser(rs.getInt("author_id")), GetSubcreddit(rs.getInt("subcreddit_id")),
-                    rs.getString("title"), rs.getString("content"), media, GetPostCategories(postid),
-                    rs.getTimestamp("create_time"), rs.getTimestamp("edit_time"), votes, comments);
-            posts.add(p);
+            posts.add(new Post(postid, author, sub, title, content, media, categories, rs.getTimestamp("create_time"), rs.getTimestamp("edit_time"), votes, comments));
         }
         if(prompt != null && !prompt.isBlank()) {
             prompt = prompt.toLowerCase();
