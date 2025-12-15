@@ -26,7 +26,7 @@ import java.util.concurrent.TimeUnit;
 public class Server {
 
     private static final String UPLOAD_DIR = System.getProperty("user.dir") + File.separator + "uploads";
-    private static Gson gson; //WORK
+    private static Gson gson;
     private static Process ngrokProcess;
     private static final ExecutorService THREAD_POOL = Executors.newFixedThreadPool(10);
 

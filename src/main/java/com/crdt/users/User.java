@@ -2,7 +2,6 @@ package com.crdt.users;
 
 import com.crdt.*;
 import de.mkammerer.argon2.*;
-
 import java.security.SecureRandom;
 import java.sql.*;
 import java.time.Duration;
@@ -183,14 +182,14 @@ public class User implements Reportable {
     private PriorityQueue<Post> ScorePosts(ArrayList<Post> posts) throws SQLException {
         Map<Integer, Double> postScores = new LinkedHashMap<>();
         ArrayList<Subcreddit> subs = new ArrayList<>();
-        ArrayList<User> followers = new ArrayList<>();
+        ArrayList<User> friends = new ArrayList<>();
         Map<String, Integer> freq = new HashMap<>();
         if(this.id > 0) {
-            followers = this.GetFriends();
+            friends = this.GetFriends();
             subs = this.GetSubcreddits();
             freq = this.GetFrequentCategories();
         }
-        double subcredditWeight = 200.0; double followerWeight = 100.0; double voteWeight = 10.0; double timeWeight = -2.0; double categoryWeight = 1.0;
+        double subcredditWeight = 200.0; double friendWeight = 100.0; double voteWeight = 10.0; double timeWeight = -2.0; double categoryWeight = 1.0;
         boolean subcredditMatch = false, userFollowMatch = false;
         int categoryMatch = 0;
         for(Post post : posts) {
@@ -199,12 +198,12 @@ public class User implements Reportable {
                 continue;
             }
             for(Subcreddit sub : subs) {
-                if (sub.GetSubId() == post.GetID()) {
+                if (sub.GetSubId() == post.GetSubcreddit().GetSubId()) {
                     subcredditMatch = true;
                     break;
                 }
             }
-            for(User user : followers) {
+            for(User user : friends) {
                 if(user.id == post.GetAuthor().id || this.id == post.GetAuthor().id) {
                     userFollowMatch = true;
                     break;
@@ -216,13 +215,13 @@ public class User implements Reportable {
                     categoryMatch += Math.min(freq.get(category), 5);
             }
             long hoursOld = Duration.between(post.GetTimeCreated().toInstant(), Instant.now()).toHours();
-            double score = (subcredditWeight * (subcredditMatch? 1 : 0)) + (followerWeight * (userFollowMatch? 1 : 0)) + (voteWeight * ((double)post.GetVotes()/1000.0))
+            double score = (subcredditWeight * (subcredditMatch? 1 : 0)) + (friendWeight * (userFollowMatch? 1 : 0)) + (voteWeight * ((double)post.GetVotes()/1000.0))
                             + (timeWeight * hoursOld) + (categoryWeight * categoryMatch);
             postScores.put(post.GetID(), score);
         }
 
         PriorityQueue<Post> pq = new PriorityQueue<>(
-                (a, b) -> Double.compare(postScores.get(b.GetID()), postScores.get(a.GetID()))
+                (fris, hassan) -> Double.compare(postScores.get(hassan.GetID()), postScores.get(fris.GetID()))
         );
         pq.addAll(posts);
         return pq;
@@ -541,7 +540,6 @@ public class User implements Reportable {
         return 0;
     }
 
-    //TODO: SETTERS NOT IN CLASS DIAGRAM
     public void setUsername(String username) {
         if (username == null || username.isEmpty() || username.length() > 32)
             return;
