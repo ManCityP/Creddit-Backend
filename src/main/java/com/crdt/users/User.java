@@ -197,10 +197,12 @@ public class User implements Reportable {
                 postScores.put(post.GetID(), Double.MAX_VALUE);
                 continue;
             }
-            for(Subcreddit sub : subs) {
-                if (sub.GetSubId() == post.GetSubcreddit().GetSubId()) {
-                    subcredditMatch = true;
-                    break;
+            if(post.GetSubcreddit() != null) {
+                for (Subcreddit sub : subs) {
+                    if (sub.GetSubId() == post.GetSubcreddit().GetSubId()) {
+                        subcredditMatch = true;
+                        break;
+                    }
                 }
             }
             for(User user : friends) {
