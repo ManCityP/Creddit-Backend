@@ -135,7 +135,7 @@ public abstract class Database {
             if(prompt != null && !prompt.isBlank()) {
                 prompt = prompt.toLowerCase();
                 if (!title.toLowerCase().contains(prompt) && !categories.contains(prompt) && !content.toLowerCase().contains(prompt)
-                        && !author.getUsername().toLowerCase().contains(prompt) && !sub.GetSubName().toLowerCase().contains(prompt))
+                        && !author.getUsername().toLowerCase().contains(prompt))
                 {
                     continue;
                 }
@@ -198,7 +198,7 @@ public abstract class Database {
             if(prompt != null && !prompt.isBlank()) {
                 prompt = prompt.toLowerCase();
                 if (!title.toLowerCase().contains(prompt) && !categories.contains(prompt) && !content.toLowerCase().contains(prompt)
-                        && !author.getUsername().toLowerCase().contains(prompt) && (sub == null || !sub.GetSubName().toLowerCase().contains(prompt)))
+                        && (sub == null || !sub.GetSubName().toLowerCase().contains(prompt)))
                 {
                     continue;
                 }
@@ -233,19 +233,6 @@ public abstract class Database {
 
             }
             posts.add(new Post(postid, author, sub, title, content, media, categories, rs.getTimestamp("create_time"), rs.getTimestamp("edit_time"), votes, comments));
-        }
-        if(prompt != null && !prompt.isBlank()) {
-            prompt = prompt.toLowerCase();
-            ArrayList<Post> filteredPosts = new ArrayList<>();
-            for (Post post : posts) {
-                if (post.GetTitle().toLowerCase().contains(prompt) || post.GetCategories().contains(prompt) ||
-                        post.GetContent().toLowerCase().contains(prompt) ||
-                        post.GetAuthor().getUsername().toLowerCase().contains(prompt) ||
-                        post.GetSubcreddit().GetSubName().toLowerCase().contains(prompt)) {
-                    filteredPosts.add(post);
-                }
-            }
-            posts = filteredPosts;
         }
         return posts;
     }
@@ -293,7 +280,7 @@ public abstract class Database {
         return null;
     }
 
-    private static ArrayList<String> GetPostCategories(int postID) throws SQLException {
+    public static ArrayList<String> GetPostCategories(int postID) throws SQLException {
         ArrayList<String> categories = new ArrayList<>();
         String sql = "SELECT * FROM post_categories WHERE (post_id = ?)";
         PreparedStatement stmt = PrepareStatement(sql);

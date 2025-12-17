@@ -229,29 +229,94 @@ public class User implements Reportable {
         return pq;
     }
 
-    public static ArrayList<Post> GetPostFeed(User user, String prompt, int lastID) {
+    public static ArrayList<Post> GetPostFeed(User user, String prompt, int lastID) throws SQLException {
         ArrayList<Post> result = new ArrayList<>();
-        try {
-            ArrayList<Post> posts = Database.GetAllPosts(prompt);
-            if(user == null)
-                user = new User(0, "Default", "default@default.com", "", Gender.MALE, "", new Media(MediaType.IMAGE, ""), null, null, true);
-            PriorityQueue<Post> sorted = user.ScorePosts(posts);
-            if(lastID > 0) {
-                while (!sorted.isEmpty()) {
-                    if (sorted.poll().GetID() == lastID)
-                        break;
+        ArrayList<Post> posts = Database.GetAllPosts(prompt);
+        if(user == null)
+            user = new User(0, "Default", "default@default.com", "", Gender.MALE, "", new Media(MediaType.IMAGE, ""), null, null, true);
+        PriorityQueue<Post> sorted = user.ScorePosts(posts);
+        if(lastID > 0) {
+            while (!sorted.isEmpty()) {
+                if (sorted.poll().GetID() == lastID)
+                    break;
+            }
+        }
+        int limit = lastID > 0? 6 : 10;
+        for(int i = 0; i < limit && !sorted.isEmpty(); i++) {
+            result.add(sorted.poll());
+        }
+        return result;
+    }
+
+    public ArrayList<Post> GetAllPostsFilterVote(String prompt, int voteValue, int lastID) throws SQLException {
+        ArrayList<Post> posts = new ArrayList<>();
+        String sql;
+        if(lastID > 0)
+            sql = "SELECT posts.id, posts.author_id, posts.subcreddit_id, posts.title, posts.content, posts.create_time, posts.edit_time, " +
+                    "votes_posts.post_id, votes_posts.user_id, votes_posts.value FROM posts " +
+                    "JOIN votes_posts ON posts.id = votes_posts.post_id " +
+                    "WHERE votes_posts.user_id = ? AND votes_posts.value = ? AND posts.id < ? " +
+                    "ORDER BY posts.id DESC LIMIT 6";
+        else
+            sql = "SELECT posts.id, posts.author_id, posts.subcreddit_id, posts.title, posts.content, posts.create_time, posts.edit_time, " +
+                    "votes_posts.post_id, votes_posts.user_id, votes_posts.value FROM posts " +
+                    "JOIN votes_posts ON posts.id = votes_posts.post_id " +
+                    "WHERE votes_posts.user_id = ? AND votes_posts.value = ? " +
+                    "ORDER BY posts.id DESC LIMIT 10";
+        PreparedStatement stmt = Database.PrepareStatement(sql);
+        stmt.setInt(1, this.id);
+        stmt.setInt(2, voteValue);
+        if(lastID > 0)
+            stmt.setInt(3, lastID);
+        ResultSet rs = stmt.executeQuery();
+        while (rs.next()) {
+            int postid = rs.getInt("posts.id");
+            ArrayList<String> categories = Database.GetPostCategories(postid);
+
+            String title = rs.getString("posts.title");
+            String content = rs.getString("posts.content");
+            User author = Database.GetUser(rs.getInt("posts.author_id"));
+            Subcreddit sub = Database.GetSubcreddit(rs.getInt("posts.subcreddit_id"));
+            if(prompt != null && !prompt.isBlank()) {
+                prompt = prompt.toLowerCase();
+                if (!title.toLowerCase().contains(prompt) && !categories.contains(prompt) && !content.toLowerCase().contains(prompt)
+                        && !author.getUsername().toLowerCase().contains(prompt) && (sub == null || !sub.GetSubName().toLowerCase().contains(prompt)))
+                {
+                    continue;
                 }
             }
-            int limit = lastID > 0? 6 : 10;
-            for(int i = 0; i < limit && !sorted.isEmpty(); i++) {
-                result.add(sorted.poll());
+
+            ArrayList<Media> media = new ArrayList<>();
+
+            String sql2 = "SELECT * FROM post_media WHERE (post_id = ?) ORDER BY id ASC";
+            PreparedStatement stmt2 = Database.PrepareStatement(sql2);
+            stmt2.setInt(1, postid);
+            ResultSet rs2 = stmt2.executeQuery();
+            while (rs2.next()) {
+                media.add(new Media(MediaType.from(rs2.getString("media_type")), rs2.getString("media_url")));
             }
-            return result;
+
+            int votes = 0;
+            String sql3 = "SELECT * FROM votes_posts WHERE (post_id = ?)";
+            PreparedStatement stmt3 = Database.PrepareStatement(sql3);
+            stmt3.setInt(1, postid);
+            ResultSet rs3 = stmt3.executeQuery();
+            while(rs3.next()) {
+                votes += rs3.getInt("value");
+            }
+
+            int comments = 0;
+            String sql4 = "SELECT COUNT(*) AS count FROM comments WHERE post_id = ?";
+            PreparedStatement stmt4 = Database.PrepareStatement(sql4);
+            stmt4.setInt(1, postid);
+            ResultSet rs4 = stmt4.executeQuery();
+            if (rs4.next()) {
+                comments = rs4.getInt("count");
+
+            }
+            posts.add(new Post(postid, author, sub, title, content, media, categories, rs.getTimestamp("posts.create_time"), rs.getTimestamp("posts.edit_time"), votes, comments));
         }
-        catch (SQLException e) {
-            e.printStackTrace();
-        }
-        return null;
+        return posts;
     }
 
     public Map<String, Integer> GetFrequentCategories() throws SQLException {

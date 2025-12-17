@@ -481,6 +481,42 @@ public class Server {
             return gson.toJson(jsonObj);
         });
 
+        // Route: Get user's post feed - filter by upvoted
+        post("/post/feed/filter-upvote", (req, res) -> {
+            try {
+                JsonObject json = gson.fromJson(req.body(), JsonObject.class);
+                User user = gson.fromJson(json.get("user"), User.class);
+                String prompt = gson.fromJson(json.get("prompt"), String.class);
+                int lastPostID = gson.fromJson(json.get("lastID"), int.class);
+                ArrayList<Post> posts = user.GetAllPostsFilterVote(prompt, 1, lastPostID);
+                res.type("application/json");
+                return gson.toJson(posts, Post[].class);
+            }
+            catch (SQLException e) {
+                e.printStackTrace();
+                res.status(500);
+                return gson.toJson(Map.of("status", "error", "message", e.getMessage()));
+            }
+        });
+
+        // Route: Get user's post feed - filter by downvoted
+        post("/post/feed/filter-downvote", (req, res) -> {
+            try {
+                JsonObject json = gson.fromJson(req.body(), JsonObject.class);
+                User user = gson.fromJson(json.get("user"), User.class);
+                String prompt = gson.fromJson(json.get("prompt"), String.class);
+                int lastPostID = gson.fromJson(json.get("lastID"), int.class);
+                ArrayList<Post> posts = user.GetAllPostsFilterVote(prompt, -1, lastPostID);
+                res.type("application/json");
+                return gson.toJson(posts, Post[].class);
+            }
+            catch (SQLException e) {
+                e.printStackTrace();
+                res.status(500);
+                return gson.toJson(Map.of("status", "error", "message", e.getMessage()));
+            }
+        });
+
         // Route: Send Private message
         post("/pm/send", (req, res) -> {
             try {
