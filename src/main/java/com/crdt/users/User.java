@@ -250,41 +250,38 @@ public class User implements Reportable {
 
     public ArrayList<Post> GetAllPostsFilterVote(String prompt, int voteValue, int lastID) throws SQLException {
         ArrayList<Post> posts = new ArrayList<>();
+        if(prompt == null)
+            prompt = "";
         String sql;
         if(lastID > 0)
             sql = "SELECT posts.id, posts.author_id, posts.subcreddit_id, posts.title, posts.content, posts.create_time, posts.edit_time, " +
                     "votes_posts.post_id, votes_posts.user_id, votes_posts.value FROM posts " +
                     "JOIN votes_posts ON posts.id = votes_posts.post_id " +
-                    "WHERE votes_posts.user_id = ? AND votes_posts.value = ? AND posts.id < ? " +
+                    "WHERE votes_posts.user_id = ? AND votes_posts.value = ? AND (LOWER(posts.title) LIKE ? " +
+                    "OR LOWER(posts.content) LIKE ?) AND posts.id < ? " +
                     "ORDER BY posts.id DESC LIMIT 6";
         else
             sql = "SELECT posts.id, posts.author_id, posts.subcreddit_id, posts.title, posts.content, posts.create_time, posts.edit_time, " +
                     "votes_posts.post_id, votes_posts.user_id, votes_posts.value FROM posts " +
                     "JOIN votes_posts ON posts.id = votes_posts.post_id " +
-                    "WHERE votes_posts.user_id = ? AND votes_posts.value = ? " +
+                    "WHERE votes_posts.user_id = ? AND votes_posts.value = ? AND (LOWER(posts.title) LIKE ? OR LOWER(posts.content) LIKE ?)" +
                     "ORDER BY posts.id DESC LIMIT 10";
         PreparedStatement stmt = Database.PrepareStatement(sql);
         stmt.setInt(1, this.id);
         stmt.setInt(2, voteValue);
+        stmt.setString(3, "%" + prompt.toLowerCase() + "%");
+        stmt.setString(4, "%" + prompt.toLowerCase() + "%");
         if(lastID > 0)
-            stmt.setInt(3, lastID);
+            stmt.setInt(5, lastID);
         ResultSet rs = stmt.executeQuery();
         while (rs.next()) {
-            int postid = rs.getInt("posts.id");
+            int postid = rs.getInt(1);
             ArrayList<String> categories = Database.GetPostCategories(postid);
 
-            String title = rs.getString("posts.title");
-            String content = rs.getString("posts.content");
-            User author = Database.GetUser(rs.getInt("posts.author_id"));
-            Subcreddit sub = Database.GetSubcreddit(rs.getInt("posts.subcreddit_id"));
-            if(prompt != null && !prompt.isBlank()) {
-                prompt = prompt.toLowerCase();
-                if (!title.toLowerCase().contains(prompt) && !categories.contains(prompt) && !content.toLowerCase().contains(prompt)
-                        && !author.getUsername().toLowerCase().contains(prompt) && (sub == null || !sub.GetSubName().toLowerCase().contains(prompt)))
-                {
-                    continue;
-                }
-            }
+            String title = rs.getString(4);
+            String content = rs.getString(5);
+            User author = Database.GetUser(rs.getInt(2));
+            Subcreddit sub = Database.GetSubcreddit(rs.getInt(3));
 
             ArrayList<Media> media = new ArrayList<>();
 
@@ -314,7 +311,7 @@ public class User implements Reportable {
                 comments = rs4.getInt("count");
 
             }
-            posts.add(new Post(postid, author, sub, title, content, media, categories, rs.getTimestamp("posts.create_time"), rs.getTimestamp("posts.edit_time"), votes, comments));
+            posts.add(new Post(postid, author, sub, title, content, media, categories, rs.getTimestamp(6), rs.getTimestamp(7), votes, comments));
         }
         return posts;
     }

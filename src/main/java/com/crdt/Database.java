@@ -57,8 +57,12 @@ public abstract class Database {
 
     public static ArrayList<Post> GetAllPosts(String prompt) throws SQLException {
         ArrayList<Post> posts = new ArrayList<>();
-        String sql = "SELECT * FROM posts ORDER BY id DESC";
+        if(prompt == null)
+            prompt = "";
+        String sql = "SELECT * FROM posts WHERE LOWER(posts.title) LIKE ? OR LOWER(posts.content) LIKE ? ORDER BY id DESC";
         PreparedStatement stmt = PrepareStatement(sql);
+        stmt.setString(1, "%" + prompt.toLowerCase() + "%");
+        stmt.setString(2, "%" + prompt.toLowerCase() + "%");
         ResultSet rs = stmt.executeQuery();
         while (rs.next()) {
             int postid = rs.getInt("id");
@@ -68,14 +72,14 @@ public abstract class Database {
             String content = rs.getString("content");
             User author = GetUser(rs.getInt("author_id"));
             Subcreddit sub = GetSubcreddit(rs.getInt("subcreddit_id"));
-            if(prompt != null && !prompt.isBlank()) {
+            /*if(prompt != null && !prompt.isBlank()) {
                 prompt = prompt.toLowerCase();
                 if (!title.toLowerCase().contains(prompt) && !categories.contains(prompt) && !content.toLowerCase().contains(prompt)
                         && !author.getUsername().toLowerCase().contains(prompt) && (sub == null || !sub.GetSubName().toLowerCase().contains(prompt)))
                 {
                     continue;
                 }
-            }
+            }*/
 
             ArrayList<Media> media = new ArrayList<>();
 
@@ -115,15 +119,19 @@ public abstract class Database {
         ArrayList<Post> posts = new ArrayList<>();
         if(sub == null)
             return posts;
+        if(prompt == null)
+            prompt = "";
         String sql;
         if(lastID > 0)
-            sql = "SELECT * FROM posts WHERE subcreddit_id = ? AND id < ? ORDER BY id DESC LIMIT 6";
+            sql = "SELECT * FROM posts WHERE subcreddit_id = ? AND (LOWER(title) LIKE ? OR LOWER(content) LIKE ?) AND id < ? ORDER BY id DESC LIMIT 6";
         else
-            sql = "SELECT * FROM posts WHERE subcreddit_id = ? ORDER BY id DESC LIMIT 10";
+            sql = "SELECT * FROM posts WHERE subcreddit_id = ? AND (LOWER(title) LIKE ? OR LOWER(content) LIKE ?) ORDER BY id DESC LIMIT 10";
         PreparedStatement stmt = PrepareStatement(sql);
         stmt.setInt(1, sub.GetSubId());
+        stmt.setString(2, "%" + prompt.toLowerCase() + "%");
+        stmt.setString(3, "%" + prompt.toLowerCase() + "%");
         if(lastID > 0)
-            stmt.setInt(2, lastID);
+            stmt.setInt(4, lastID);
         ResultSet rs = stmt.executeQuery();
         while (rs.next()) {
             int postid = rs.getInt("id");
@@ -132,14 +140,14 @@ public abstract class Database {
             String title = rs.getString("title");
             String content = rs.getString("content");
             User author = GetUser(rs.getInt("author_id"));
-            if(prompt != null && !prompt.isBlank()) {
+            /*if(prompt != null && !prompt.isBlank()) {
                 prompt = prompt.toLowerCase();
                 if (!title.toLowerCase().contains(prompt) && !categories.contains(prompt) && !content.toLowerCase().contains(prompt)
                         && !author.getUsername().toLowerCase().contains(prompt))
                 {
                     continue;
                 }
-            }
+            }*/
 
             ArrayList<Media> media = new ArrayList<>();
 
@@ -178,31 +186,34 @@ public abstract class Database {
         ArrayList<Post> posts = new ArrayList<>();
         if(author == null)
             return posts;
+        if(prompt == null)
+            prompt = "";
         String sql;
         if(lastID > 0)
-            sql = "SELECT * FROM posts WHERE author_id = ? AND id < ? ORDER BY id DESC LIMIT 6";
+            sql = "SELECT * FROM posts WHERE author_id = ? AND (LOWER(title) LIKE ? OR LOWER(content) LIKE ?) AND id < ? ORDER BY id DESC LIMIT 6";
         else
-            sql = "SELECT * FROM posts WHERE author_id = ? ORDER BY id DESC LIMIT 10";
+            sql = "SELECT * FROM posts WHERE author_id = ? AND (LOWER(title) LIKE ? OR LOWER(content) LIKE ?) ORDER BY id DESC LIMIT 10";
         PreparedStatement stmt = PrepareStatement(sql);
         stmt.setInt(1, author.getId());
+        stmt.setString(2, "%" + prompt.toLowerCase() + "%");
+        stmt.setString(3, "%" + prompt.toLowerCase() + "%");
         if(lastID > 0)
-            stmt.setInt(2, lastID);
+            stmt.setInt(4, lastID);
         ResultSet rs = stmt.executeQuery();
         while (rs.next()) {
             int postid = rs.getInt("id");
             ArrayList<String> categories = GetPostCategories(postid);
-
             String title = rs.getString("title");
             String content = rs.getString("content");
             Subcreddit sub = GetSubcreddit(rs.getInt("subcreddit_id"));
-            if(prompt != null && !prompt.isBlank()) {
+            /*if(prompt != null && !prompt.isBlank()) {
                 prompt = prompt.toLowerCase();
                 if (!title.toLowerCase().contains(prompt) && !categories.contains(prompt) && !content.toLowerCase().contains(prompt)
                         && (sub == null || !sub.GetSubName().toLowerCase().contains(prompt)))
                 {
                     continue;
                 }
-            }
+            }*/
 
             ArrayList<Media> media = new ArrayList<>();
 
@@ -332,10 +343,13 @@ public abstract class Database {
 
 
     // BOOKMARK: Users
-    public static ArrayList<User> GetAllUsers() throws SQLException {
+    public static ArrayList<User> GetAllUsers(String prompt) throws SQLException {
+        if(prompt == null)
+            prompt = "";
         ArrayList<User> users = new ArrayList<>();
-        String sql = "SELECT * FROM users ORDER BY id DESC";
+        String sql = "SELECT * FROM users WHERE LOWER(username) LIKE ? ORDER BY id DESC";
         PreparedStatement stmt = PrepareStatement(sql);
+        stmt.setString(1, "%" + prompt.toLowerCase() + "%");
         ResultSet rs = stmt.executeQuery();
         while (rs.next()) {
             if(rs.getInt("admin") == 1)
@@ -409,31 +423,6 @@ public abstract class Database {
 
 
     // BOOKMARK: Comments
-    public static ArrayList<Comment> GetAllComments(int postid) throws SQLException {
-        ArrayList<Comment> comments = new ArrayList<>();
-        String sql = "SELECT * FROM comments WHERE (post_id = ?) ORDER BY id DESC";
-
-        PreparedStatement stmt = PrepareStatement(sql);
-        stmt.setInt(1, postid);
-        ResultSet rs = stmt.executeQuery();
-        while (rs.next()) {
-            int commentID = rs.getInt("id");
-            int votes = 0;
-            String sql2 = "SELECT * FROM votes_comments WHERE (comment_id = ?)";
-            PreparedStatement stmt2 = PrepareStatement(sql2);
-            stmt2.setInt(1, commentID);
-            ResultSet rs2 = stmt2.executeQuery();
-            while(rs2.next()) {
-                votes += (rs2.getString("value").equalsIgnoreCase("Up")? 1 : -1);
-            }
-
-            comments.add(new Comment(commentID, GetPost(rs.getInt("post_id")), GetUser(rs.getInt("author_id")), rs.getString("content"),
-                    new Media(MediaType.from(rs.getString("media_type")), rs.getString("media_url")), GetComment(rs.getInt("parent_id")), votes,
-                    rs.getTimestamp("create_time"), rs.getTimestamp("edit_time")));
-        }
-        return comments;
-    }
-
     public static Comment GetComment(int commentid) throws SQLException {
         if(commentid <= 0)
             return null;
@@ -450,13 +439,26 @@ public abstract class Database {
             stmt2.setInt(1, commentid);
             ResultSet rs2 = stmt2.executeQuery();
             while(rs2.next()) {
-                votes += (rs2.getString("value").equalsIgnoreCase("Up")? 1 : -1);
+                votes += (rs2.getInt("value"));
+            }
+
+            int replies = 0;
+            String sql3 = "SELECT COUNT(*) AS count FROM comments WHERE parent_id = ?";
+            PreparedStatement stmt3 = Database.PrepareStatement(sql3);
+            stmt3.setInt(1, commentid);
+            ResultSet rs3 = stmt3.executeQuery();
+            if (rs3.next()) {
+                replies = rs3.getInt("count");
             }
 
             return new Comment(commentid, GetPost(rs.getInt("post_id")), GetUser(rs.getInt("author_id")), rs.getString("content"),
-                    new Media(MediaType.from(rs.getString("media_type")), rs.getString("media_url")), GetComment(rs.getInt("parent_id")), votes,
+                    new Media(MediaType.from(rs.getString("media_type")), rs.getString("media_url")), rs.getInt("parent_id"), votes, replies,
                     rs.getTimestamp("create_time"), rs.getTimestamp("edit_time"));
         }
+        return null;
+    }
+
+    public static ArrayList<Comment> GetAllComments(String prompt, int lastID) throws SQLException {
         return null;
     }
 

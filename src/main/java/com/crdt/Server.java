@@ -71,6 +71,7 @@ public class Server {
         System.out.println("Serving uploaded files from: " + UPLOAD_DIR);
 
         Type userListType = new TypeToken<ArrayList<User>>() {}.getType();
+        Type commentMapType = new TypeToken<Map<Comment, Map<Comment, PriorityQueue<Comment>>>>() {}.getType();
 
         new Thread(() -> {
             while (true) {
@@ -670,6 +671,21 @@ public class Server {
             }
         });
 
+        //Route: Get Post's comment feed
+        post("/comment/feed", (req, res) -> {
+            try {
+                JsonObject json = gson.fromJson(req.body(), JsonObject.class);
+                Post post = gson.fromJson(json.get("post"), Post.class);
+                int lastID = gson.fromJson(json.get("lastID"), int.class);
+                res.type("application/json");
+                return gson.toJson(post.GetCommentFeed(0, lastID), commentMapType);
+            } catch (Exception e) {
+                e.printStackTrace(); // server log
+                res.status(500);
+                return gson.toJson(Map.of("status", "error", "message", e.getMessage()));
+            }
+        });
+
         // Route: Get a specific comment
         get("/comment", (req, res) -> {
             int id = Integer.parseInt(req.queryParams("id"));
@@ -681,7 +697,8 @@ public class Server {
         // Route: Get all comments
         get("/comments", (req, res) -> {
             int postid = Integer.parseInt(req.queryParams("postid"));
-            ArrayList<Comment> comments = Database.GetAllComments(postid);
+            String prompt = req.queryParams("prompt");
+            ArrayList<Comment> comments = Database.GetAllComments(prompt, postid);
             res.type("application/json");
             return gson.toJson(comments);
         });
@@ -923,15 +940,6 @@ public class Server {
             res.type("application/json");
             return gson.toJson(reports);
         });
-
-        // TODO: Add gets for reports and report feed
-        // Route: Get a specific subcreddit
-        /*get("/report", (req, res) -> {
-            int id = Integer.parseInt(req.queryParams("id"));
-            //Report report = Database.GetReport(id);
-            res.type("application/json");
-            return gson.toJson(report);
-        });*/
 
 
 

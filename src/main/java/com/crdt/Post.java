@@ -7,6 +7,9 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.Map;
+import java.util.PriorityQueue;
 
 public class Post implements Voteable, Reportable {
     private int id;
@@ -19,9 +22,9 @@ public class Post implements Voteable, Reportable {
     private Timestamp timeCreated;
     private Timestamp timeEdited;
     private int votes;
-    private int comments;
+    private int replyCount;
 
-    public Post(int id, User author, Subcreddit subcreddit, String title, String content, ArrayList<Media> media, ArrayList<String> categories, Timestamp timeCreated, Timestamp timeEdited, int votes, int comments) {
+    public Post(int id, User author, Subcreddit subcreddit, String title, String content, ArrayList<Media> media, ArrayList<String> categories, Timestamp timeCreated, Timestamp timeEdited, int votes, int replyCount) {
         if (id <= 0)
             return;
 
@@ -40,7 +43,7 @@ public class Post implements Voteable, Reportable {
         this.timeCreated = timeCreated;
         this.timeEdited = timeEdited;
         this.votes = votes;
-        this.comments = comments;
+        this.replyCount = replyCount;
     }
 
     public int create() throws SQLException {
@@ -119,6 +122,52 @@ public class Post implements Voteable, Reportable {
         stmt.executeUpdate();
     }
 
+    public Map<Comment, Map<Comment, PriorityQueue<Comment>>> GetCommentFeed(int parentID, int lastID) throws SQLException {
+        Map<Comment, Map<Comment, PriorityQueue<Comment>>> commentMapMap = new LinkedHashMap<>();
+        PriorityQueue<Comment> comments = new PriorityQueue<>(
+                (fris, hassan) -> Double.compare(hassan.getVotes(), fris.getVotes())
+        );
+        String sql;
+        if(lastID > 0)
+            sql = "SELECT * FROM comments WHERE post_id = ? AND parent_id = ? AND id < ? ORDER BY id DESC";
+        else
+            sql = "SELECT * FROM comments WHERE post_id = ? AND parent_id = ? ORDER BY id DESC";
+        PreparedStatement stmt = Database.PrepareStatement(sql);
+        stmt.setInt(1, this.id);
+        stmt.setInt(2, parentID);
+        if(lastID > 0)
+            stmt.setInt(3, lastID);
+        ResultSet rs = stmt.executeQuery();
+        while (rs.next()) {
+            int commentID = rs.getInt("id");
+            int votes = 0;
+            String sql2 = "SELECT * FROM votes_comments WHERE comment_id = ?";
+            PreparedStatement stmt2 = Database.PrepareStatement(sql2);
+            stmt2.setInt(1, commentID);
+            ResultSet rs2 = stmt2.executeQuery();
+            while(rs2.next()) {
+                votes += (rs2.getInt("value"));
+            }
+
+            comments.add(new Comment(commentID, this, Database.GetUser(rs.getInt("author_id")), rs.getString("content"),
+                    new Media(MediaType.from(rs.getString("media_type")), rs.getString("media_url")), parentID, votes, 0,
+                    rs.getTimestamp("create_time"), rs.getTimestamp("edit_time")));
+        }
+        while(!comments.isEmpty()) {
+            Comment comm = comments.poll();
+            PriorityQueue<Comment> lvl2_replies = comm.GetReplies();
+            comm.setReplyCount(lvl2_replies.size());
+            Map<Comment, PriorityQueue<Comment>> commentMap = new LinkedHashMap<>();
+            while(!lvl2_replies.isEmpty()) {
+                Comment reply = lvl2_replies.poll();
+                PriorityQueue<Comment> lvl3_replies = reply.GetReplies();
+                commentMap.put(reply, lvl3_replies);
+            }
+            commentMapMap.put(comm, commentMap);
+        }
+        return commentMapMap;
+    }
+
     public int GetID() {
         return id;
     }
@@ -158,8 +207,8 @@ public class Post implements Voteable, Reportable {
     public int GetVotes() {
         return votes;
     }
-    public int GetComments() {
-        return comments;
+    public int GetReplyCount() {
+        return replyCount;
     }
 
     @Override

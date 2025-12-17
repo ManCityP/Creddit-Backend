@@ -2,9 +2,9 @@ package com.crdt;
 
 public enum ReportType {
     SPAM("Spam"), HARASSMENT("Harassment"), HATE_SPEECH("Hate Speech"), MISINFORMATION("Misinformation"),
-    NSFW("NSFW"), OTHER(null);
+    NSFW("NSFW"), OTHER("OTHER");
 
-    private String type;
+    private final String type;
 
     ReportType(String type) {
         this.type = type;
@@ -22,9 +22,7 @@ public enum ReportType {
         if(s.equalsIgnoreCase("NSFW"))
             return HARASSMENT;
         else {
-            ReportType rt = ReportType.OTHER;
-            rt.type = s;
-            return rt;
+            return OTHER;
         }
     }
     public String toString() {
