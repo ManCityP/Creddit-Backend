@@ -3,6 +3,7 @@ package com.crdt;
 import com.crdt.users.Admin;
 import com.crdt.users.Moderator;
 import com.crdt.users.User;
+import com.google.gson.annotations.JsonAdapter;
 
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -14,7 +15,7 @@ public class Report {
 
     private int id;
     private User reporter;
-    private Reportable target;
+    @JsonAdapter(ReportableForcedAdapter.class) private Reportable target;
     private String reason;
     private ReportType type;
     private ReportStatus status;
@@ -88,7 +89,7 @@ public class Report {
 
         String sql;
         if(lastID > 0)
-            sql = "SELECT * FROM reports_users ORDER BY id DESC WHERE id < ? AND status = 'Pending' LIMIT 10";
+            sql = "SELECT * FROM reports_users WHERE id < ? AND status = 'Pending' ORDER BY id DESC LIMIT 10";
         else
             sql = "SELECT * FROM reports_users WHERE status = 'Pending' ORDER BY id DESC LIMIT 10";
         PreparedStatement stmt = Database.PrepareStatement(sql);
@@ -113,7 +114,7 @@ public class Report {
         PreparedStatement stmt = null;
         if(user instanceof Admin) {
             if (lastID > 0)
-                sql = "SELECT * FROM reports_posts ORDER BY id DESC WHERE id < ? AND status = 'Pending' LIMIT 10";
+                sql = "SELECT * FROM reports_posts DESC WHERE id < ? AND status = 'Pending' ORDER BY id LIMIT 10";
             else
                 sql = "SELECT * FROM reports_posts WHERE status = 'Pending' ORDER BY id DESC LIMIT 10";
             stmt = Database.PrepareStatement(sql);
@@ -155,7 +156,7 @@ public class Report {
         PreparedStatement stmt = null;
         if(user instanceof Admin) {
             if (lastID > 0)
-                sql = "SELECT * FROM reports_comments ORDER BY id DESC WHERE id < ? AND status = 'Pending' LIMIT 10";
+                sql = "SELECT * FROM reports_comments WHERE id < ? AND status = 'Pending' ORDER BY id DESC LIMIT 10";
             else
                 sql = "SELECT * FROM reports_comments WHERE status = 'Pending' ORDER BY id DESC LIMIT 10";
             stmt = Database.PrepareStatement(sql);
