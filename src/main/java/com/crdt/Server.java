@@ -672,7 +672,7 @@ public class Server {
         });
 
         //Route: Get Post's comment feed
-        post("/comment/feed", (req, res) -> {
+        post("/post/comment/feed", (req, res) -> {
             try {
                 JsonObject json = gson.fromJson(req.body(), JsonObject.class);
                 Post post = gson.fromJson(json.get("post"), Post.class);
