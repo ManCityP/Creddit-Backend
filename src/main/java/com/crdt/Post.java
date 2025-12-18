@@ -6,10 +6,7 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
-import java.util.ArrayList;
-import java.util.LinkedHashMap;
-import java.util.Map;
-import java.util.PriorityQueue;
+import java.util.*;
 
 public class Post implements Voteable, Reportable {
     private int id;
@@ -122,8 +119,7 @@ public class Post implements Voteable, Reportable {
         stmt.executeUpdate();
     }
 
-    public Map<Comment, Map<Comment, PriorityQueue<Comment>>> GetCommentFeed(int parentID, int lastID) throws SQLException {
-        Map<Comment, Map<Comment, PriorityQueue<Comment>>> commentMapMap = new LinkedHashMap<>();
+    public ArrayList<Comment> GetCommentFeed(User user, int parentID, int lastID, Map<Integer, ArrayList<Comment>> lv2_replies, Map<Integer, ArrayList<Comment>> lv3_replies, Map<Integer, Integer> myVotes) throws SQLException {
         PriorityQueue<Comment> comments = new PriorityQueue<>(
                 (fris, hassan) -> Double.compare(hassan.getVotes(), fris.getVotes())
         );
@@ -146,26 +142,39 @@ public class Post implements Voteable, Reportable {
             stmt2.setInt(1, commentID);
             ResultSet rs2 = stmt2.executeQuery();
             while(rs2.next()) {
-                votes += (rs2.getInt("value"));
+                int val = rs2.getInt("value");
+                votes += val;
+                if(user != null && rs2.getInt("user_id") == user.getId())
+                    myVotes.put(commentID, rs2.getInt(val));
             }
 
+            Media media = null;
+            MediaType mediaType = MediaType.from(rs.getString("media_type"));
+            if(mediaType != MediaType.NONE)
+                media = new Media(mediaType, rs.getString("media_url"));
+
             comments.add(new Comment(commentID, this, Database.GetUser(rs.getInt("author_id")), rs.getString("content"),
-                    new Media(MediaType.from(rs.getString("media_type")), rs.getString("media_url")), parentID, votes, 0,
-                    rs.getTimestamp("create_time"), rs.getTimestamp("edit_time")));
+                    media, parentID, votes, 0, rs.getTimestamp("create_time"), rs.getTimestamp("edit_time"), rs.getInt("deleted") != 0));
         }
+        ArrayList<Comment> parentComments = new ArrayList<>();
         while(!comments.isEmpty()) {
             Comment comm = comments.poll();
-            PriorityQueue<Comment> lvl2_replies = comm.GetReplies();
-            comm.setReplyCount(lvl2_replies.size());
-            Map<Comment, PriorityQueue<Comment>> commentMap = new LinkedHashMap<>();
-            while(!lvl2_replies.isEmpty()) {
-                Comment reply = lvl2_replies.poll();
-                PriorityQueue<Comment> lvl3_replies = reply.GetReplies();
-                commentMap.put(reply, lvl3_replies);
+            parentComments.add(comm);
+            PriorityQueue<Comment> lvl2_reply = comm.GetReplies(user, myVotes);
+            comm.setReplyCount(lvl2_reply.size());
+            ArrayList<Comment> lv2 = new ArrayList<>();
+            while(!lvl2_reply.isEmpty()) {
+                Comment reply = lvl2_reply.poll();
+                lv2.add(reply);
+                PriorityQueue<Comment> lvl3_reply = reply.GetReplies(user, myVotes);
+                ArrayList<Comment> lv3 = new ArrayList<>();
+                while(!lvl3_reply.isEmpty())
+                    lv3.add(lvl3_reply.poll());
+                lv3_replies.put(reply.getID(), lv3);
             }
-            commentMapMap.put(comm, commentMap);
+            lv2_replies.put(comm.getID(), lv2);
         }
-        return commentMapMap;
+        return parentComments;
     }
 
     public int GetID() {

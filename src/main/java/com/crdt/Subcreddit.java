@@ -32,7 +32,7 @@ public class Subcreddit {
     public int create() throws SQLException {
         String sql = "INSERT INTO subcreddits (name, description, creator_id, logo, private) VALUES (?, ?, ?, ?, ?)";
         if(subLogo == null)
-            subLogo = new Media(MediaType.IMAGE, "");
+            subLogo = new Media(MediaType.NONE, "");
         PreparedStatement stmt = Database.PrepareStatement(sql, true);
         stmt.setString(1, this.name);
         stmt.setString(2, this.description);

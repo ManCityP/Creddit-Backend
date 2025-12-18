@@ -71,7 +71,8 @@ public class Server {
         System.out.println("Serving uploaded files from: " + UPLOAD_DIR);
 
         Type userListType = new TypeToken<ArrayList<User>>() {}.getType();
-        Type commentMapType = new TypeToken<Map<Comment, Map<Comment, PriorityQueue<Comment>>>>() {}.getType();
+        Type commentMapType = new TypeToken<Map<Integer, Comment[]>>() {}.getType();
+        Type id_vote_type = new TypeToken<Map<Integer, Integer>>() {}.getType();
 
         new Thread(() -> {
             while (true) {
@@ -661,7 +662,34 @@ public class Server {
         post("/comment/create", (req, res) -> {
             try {
                 Comment comment = gson.fromJson(req.body(), Comment.class);
-                comment.create();
+                res.type("application/json");
+                return gson.toJson(comment.create(), int.class);
+            } catch (Exception e) {
+                e.printStackTrace(); // server log
+                res.status(500);
+                return gson.toJson(Map.of("status", "error", "message", e.getMessage()));
+            }
+        });
+
+        //Route: Delete comment
+        post("/comment/delete", (req, res) -> {
+            try {
+                Comment comment = gson.fromJson(req.body(), Comment.class);
+                comment.delete();
+                res.type("application/json");
+                return gson.toJson(Map.of("status", "ok"));
+            } catch (Exception e) {
+                e.printStackTrace(); // server log
+                res.status(500);
+                return gson.toJson(Map.of("status", "error", "message", e.getMessage()));
+            }
+        });
+
+        //Route: Edit comment
+        post("/comment/edit", (req, res) -> {
+            try {
+                Comment comment = gson.fromJson(req.body(), Comment.class);
+                comment.update();
                 res.type("application/json");
                 return gson.toJson(Map.of("status", "ok"));
             } catch (Exception e) {
@@ -675,10 +703,20 @@ public class Server {
         post("/post/comment/feed", (req, res) -> {
             try {
                 JsonObject json = gson.fromJson(req.body(), JsonObject.class);
+                User user = gson.fromJson(json.get("user"), User.class);
                 Post post = gson.fromJson(json.get("post"), Post.class);
                 int lastID = gson.fromJson(json.get("lastID"), int.class);
+                Map<Integer, ArrayList<Comment>> lv2_replies = new HashMap<>();
+                Map<Integer, ArrayList<Comment>> lv3_replies = new HashMap<>();
+                Map<Integer, Integer> myVotes = new HashMap<>();
+                ArrayList<Comment> parentComments = post.GetCommentFeed(user, 0, lastID, lv2_replies, lv3_replies, myVotes);
+                JsonObject jsonObj = new JsonObject();
+                jsonObj.add("parents", gson.toJsonTree(parentComments, Comment[].class));
+                jsonObj.add("lv2", gson.toJsonTree(parentComments, commentMapType));
+                jsonObj.add("lv3", gson.toJsonTree(parentComments, commentMapType));
+                jsonObj.add("votes", gson.toJsonTree(myVotes, id_vote_type));
                 res.type("application/json");
-                return gson.toJson(post.GetCommentFeed(0, lastID), commentMapType);
+                return gson.toJson(jsonObj);
             } catch (Exception e) {
                 e.printStackTrace(); // server log
                 res.status(500);

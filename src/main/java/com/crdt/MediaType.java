@@ -4,7 +4,8 @@ public enum MediaType {
     IMAGE("Image"),
     VIDEO("Video"),
     AUDIO("Audio"),
-    OTHER("Other");
+    OTHER("Other"),
+    NONE("None");
 
     private final String mediaType;
 
@@ -21,6 +22,8 @@ public enum MediaType {
             return AUDIO;
         if(s.equalsIgnoreCase("Other"))
             return OTHER;
+        if(s.equalsIgnoreCase("None"))
+            return NONE;
         return null;
     }
     public String toString() {

@@ -451,9 +451,14 @@ public abstract class Database {
                 replies = rs3.getInt("count");
             }
 
-            return new Comment(commentid, GetPost(rs.getInt("post_id")), GetUser(rs.getInt("author_id")), rs.getString("content"),
-                    new Media(MediaType.from(rs.getString("media_type")), rs.getString("media_url")), rs.getInt("parent_id"), votes, replies,
-                    rs.getTimestamp("create_time"), rs.getTimestamp("edit_time"));
+            Media media = null;
+            MediaType mediaType = MediaType.from(rs.getString("media_type"));
+            if(mediaType != MediaType.NONE)
+                media = new Media(mediaType, rs.getString("media_url"));
+
+            return new Comment(commentid, GetPost(rs.getInt("post_id")), Database.GetUser(rs.getInt("author_id")), rs.getString("content"),
+                    media, rs.getInt("parent_id"), votes, replies, rs.getTimestamp("create_time"),
+                    rs.getTimestamp("edit_time"), rs.getInt("deleted") != 0);
         }
         return null;
     }

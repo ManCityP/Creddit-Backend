@@ -7,6 +7,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.util.ArrayList;
+import java.util.Map;
 import java.util.PriorityQueue;
 
 public class Comment implements Voteable, Reportable {
@@ -20,8 +21,9 @@ public class Comment implements Voteable, Reportable {
     private int replyCount;
     private Timestamp timeCreated;
     private Timestamp timeEdited;
+    private boolean deleted;
 
-    public Comment(int id, Post post, User author, String content, Media media, int parentID, int votes, int replyCount, Timestamp createTime, Timestamp editTime) {
+    public Comment(int id, Post post, User author, String content, Media media, int parentID, int votes, int replyCount, Timestamp createTime, Timestamp editTime, boolean deleted) {
         this.id = id;
         this.post = post;
         this.author = author;
@@ -32,11 +34,14 @@ public class Comment implements Voteable, Reportable {
         this.replyCount = replyCount;
         this.timeCreated = createTime;
         this.timeEdited = editTime;
+        this.deleted = deleted;
     }
 
-    public void create() throws SQLException {
+    public int create() throws SQLException {
+        if(media == null)
+            media = new Media(MediaType.NONE, "");
         String sql = "INSERT INTO comments (post_id, author_id, parent_id, content, media_url, media_type) VALUES (?, ?, ?, ?, ?, ?)";
-        PreparedStatement stmt = Database.PrepareStatement(sql);
+        PreparedStatement stmt = Database.PrepareStatement(sql, true);
         stmt.setInt(1, this.post.GetID());
         stmt.setInt(2, this.author.getId());
         stmt.setInt(3, this.parentID);
@@ -44,13 +49,31 @@ public class Comment implements Voteable, Reportable {
         stmt.setString(5, this.media.GetURL());
         stmt.setString(6, this.media.GetType().toString());
         stmt.executeUpdate();
+        ResultSet rs = stmt.getGeneratedKeys();
+        int genID = -1;
+        if(rs.next()) {
+            genID = rs.getInt(1);
+        }
+        if(genID <= 0)
+            throw new SQLException("Could not insert post!");
+        return genID;
     }
 
-    //TODO: Make this not delete, but delete contents only (probably a deleted tinyint)
     public void delete() throws SQLException {
-        String sql = "DELETE FROM comments WHERE id = ?";
+        String sql = "UPDATE comments SET deleted = ? WHERE id = ?";
         PreparedStatement stmt = Database.PrepareStatement(sql);
-        stmt.setInt(1, this.id);
+        stmt.setInt(1, 1);
+        stmt.setInt(2, this.id);
+        stmt.executeUpdate();
+    }
+
+    public void update() throws SQLException {
+        String sql = "UPDATE comments SET content = ?, media_url = ?, media_type = ? WHERE id = ?";
+        PreparedStatement stmt = Database.PrepareStatement(sql);
+        stmt.setString(1, this.content);
+        stmt.setString(2, this.media.GetURL());
+        stmt.setString(3, this.media.GetType().toString());
+        stmt.setInt(4, this.id);
         stmt.executeUpdate();
     }
 
@@ -71,7 +94,7 @@ public class Comment implements Voteable, Reportable {
         stmt.executeUpdate();
     }
 
-    public PriorityQueue<Comment> GetReplies() throws SQLException {
+    public PriorityQueue<Comment> GetReplies(User user, Map<Integer, Integer> myVotes) throws SQLException {
         PriorityQueue<Comment> comments = new PriorityQueue<>(
                 (fris, hassan) -> Double.compare(hassan.getVotes(), fris.getVotes())
         );
@@ -88,7 +111,10 @@ public class Comment implements Voteable, Reportable {
             stmt2.setInt(1, commentID);
             ResultSet rs2 = stmt2.executeQuery();
             while(rs2.next()) {
-                votes += (rs2.getInt("value"));
+                int val = rs2.getInt("value");
+                votes += val;
+                if(user != null && rs.getInt("user_id") == user.getId())
+                    myVotes.put(commentID, val);
             }
 
             int replies = 0;
@@ -100,9 +126,13 @@ public class Comment implements Voteable, Reportable {
                 replies = rs3.getInt("count");
             }
 
+            Media media = null;
+            MediaType mediaType = MediaType.from(rs.getString("media_type"));
+            if(mediaType != MediaType.NONE)
+                media = new Media(mediaType, rs.getString("media_url"));
+
             comments.add(new Comment(commentID, this.post, Database.GetUser(rs.getInt("author_id")), rs.getString("content"),
-                    new Media(MediaType.from(rs.getString("media_type")), rs.getString("media_url")), this.id, votes, replies,
-                    rs.getTimestamp("create_time"), rs.getTimestamp("edit_time")));
+                    media, this.id, votes, replies, rs.getTimestamp("create_time"), rs.getTimestamp("edit_time"), rs.getInt("deleted") != 0));
         }
         return comments;
     }
@@ -117,6 +147,7 @@ public class Comment implements Voteable, Reportable {
     public int getReplyCount() {return replyCount;}
     public Timestamp getTimeCreated() {return timeCreated;}
     public Timestamp getTimeEdited() {return timeEdited;}
+    public boolean getDeleted() {return deleted;}
 
     public void setReplyCount(int replyCount) {this.replyCount = replyCount;}
 
