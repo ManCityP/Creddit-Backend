@@ -71,7 +71,7 @@ public class Server {
         System.out.println("Serving uploaded files from: " + UPLOAD_DIR);
 
         Type userListType = new TypeToken<ArrayList<User>>() {}.getType();
-        Type commentMapType = new TypeToken<Map<Integer, Comment[]>>() {}.getType();
+        Type commentMapType = new TypeToken<Map<Integer, ArrayList<Comment>>>() {}.getType();
         Type id_vote_type = new TypeToken<Map<Integer, Integer>>() {}.getType();
 
         new Thread(() -> {
@@ -706,15 +706,12 @@ public class Server {
                 User user = gson.fromJson(json.get("user"), User.class);
                 Post post = gson.fromJson(json.get("post"), Post.class);
                 int lastID = gson.fromJson(json.get("lastID"), int.class);
-                Map<Integer, ArrayList<Comment>> lv2_replies = new HashMap<>();
-                Map<Integer, ArrayList<Comment>> lv3_replies = new HashMap<>();
-                Map<Integer, Integer> myVotes = new HashMap<>();
-                ArrayList<Comment> parentComments = post.GetCommentFeed(user, 0, lastID, lv2_replies, lv3_replies, myVotes);
+                CommentFeed commentFeed = post.GetCommentFeed(user, 0, lastID);
                 JsonObject jsonObj = new JsonObject();
-                jsonObj.add("parents", gson.toJsonTree(parentComments, Comment[].class));
-                jsonObj.add("lv2", gson.toJsonTree(parentComments, commentMapType));
-                jsonObj.add("lv3", gson.toJsonTree(parentComments, commentMapType));
-                jsonObj.add("votes", gson.toJsonTree(myVotes, id_vote_type));
+                jsonObj.add("parents", gson.toJsonTree(commentFeed.parents()));
+                jsonObj.add("lv2", gson.toJsonTree(commentFeed.lv2(), commentMapType));
+                jsonObj.add("lv3", gson.toJsonTree(commentFeed.lv3(), commentMapType));
+                jsonObj.add("votes", gson.toJsonTree(commentFeed.votes(), id_vote_type));
                 res.type("application/json");
                 return gson.toJson(jsonObj);
             } catch (Exception e) {

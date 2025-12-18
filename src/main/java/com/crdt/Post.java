@@ -119,7 +119,10 @@ public class Post implements Voteable, Reportable {
         stmt.executeUpdate();
     }
 
-    public ArrayList<Comment> GetCommentFeed(User user, int parentID, int lastID, Map<Integer, ArrayList<Comment>> lv2_replies, Map<Integer, ArrayList<Comment>> lv3_replies, Map<Integer, Integer> myVotes) throws SQLException {
+    public CommentFeed GetCommentFeed(User user, int parentID, int lastID) throws SQLException {
+        Map<Integer, ArrayList<Comment>> lv2_replies = new HashMap<>();
+        Map<Integer, ArrayList<Comment>> lv3_replies = new HashMap<>();
+        Map<Integer, Integer> myVotes = new HashMap<>();
         PriorityQueue<Comment> comments = new PriorityQueue<>(
                 (fris, hassan) -> Double.compare(hassan.getVotes(), fris.getVotes())
         );
@@ -141,12 +144,17 @@ public class Post implements Voteable, Reportable {
             PreparedStatement stmt2 = Database.PrepareStatement(sql2);
             stmt2.setInt(1, commentID);
             ResultSet rs2 = stmt2.executeQuery();
+            boolean found = false;
             while(rs2.next()) {
                 int val = rs2.getInt("value");
                 votes += val;
-                if(user != null && rs2.getInt("user_id") == user.getId())
-                    myVotes.put(commentID, rs2.getInt(val));
+                if(user != null && rs2.getInt("user_id") == user.getId()) {
+                    found = true;
+                    myVotes.put(commentID, val);
+                }
             }
+            if(!found)
+                myVotes.put(commentID, 0);
 
             Media media = null;
             MediaType mediaType = MediaType.from(rs.getString("media_type"));
@@ -174,7 +182,7 @@ public class Post implements Voteable, Reportable {
             }
             lv2_replies.put(comm.getID(), lv2);
         }
-        return parentComments;
+        return new CommentFeed(parentComments, lv2_replies, lv3_replies, myVotes);
     }
 
     public int GetID() {

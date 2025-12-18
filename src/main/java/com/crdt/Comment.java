@@ -110,12 +110,17 @@ public class Comment implements Voteable, Reportable {
             PreparedStatement stmt2 = Database.PrepareStatement(sql2);
             stmt2.setInt(1, commentID);
             ResultSet rs2 = stmt2.executeQuery();
+            boolean found = false;
             while(rs2.next()) {
                 int val = rs2.getInt("value");
                 votes += val;
-                if(user != null && rs.getInt("user_id") == user.getId())
+                if(user != null && rs.getInt("user_id") == user.getId()) {
+                    found = true;
                     myVotes.put(commentID, val);
+                }
             }
+            if(!found)
+                myVotes.put(commentID, 0);
 
             int replies = 0;
             String sql3 = "SELECT COUNT(*) AS count FROM comments WHERE parent_id = ?";
