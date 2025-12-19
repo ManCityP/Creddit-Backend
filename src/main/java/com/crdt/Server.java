@@ -719,7 +719,7 @@ public class Server {
         });
 
         //filter user's comment feed
-        post("/comment/feed", (req, res) -> {
+        post("/comments/feed", (req, res) -> {
             JsonObject json = gson.fromJson(req.body(), JsonObject.class);
             User user = gson.fromJson(json.get("user"), User.class);
             String prompt = gson.fromJson(json.get("prompt"), String.class);
@@ -754,44 +754,6 @@ public class Server {
                 comment.update();
                 res.type("application/json");
                 return gson.toJson(Map.of("status", "ok"));
-            } catch (Exception e) {
-                e.printStackTrace(); // server log
-                res.status(500);
-                return gson.toJson(Map.of("status", "error", "message", e.getMessage()));
-            }
-        });
-
-//Route: Get Post's comment feed
-        post("/comments/feed", (req, res) -> {
-            try {
-                JsonObject json = gson.fromJson(req.body(), JsonObject.class);
-                User user = gson.fromJson(json.get("user"), User.class);
-                int commentid = gson.fromJson(json.get("commentid"), int.class);
-                Map<Integer, Integer> myVotes = new HashMap<>();
-                Comment parent = Database.GetComment(commentid);
-                myVotes.put(parent.getID(), user == null? 0 : user.CheckVote(parent));
-                PriorityQueue<Comment> lv1 = parent.GetReplies(user, myVotes);
-                Map<Integer, ArrayList<Comment>> parentMap = new HashMap<>();
-                Map<Integer, ArrayList<Comment>> commentsMap = new HashMap<>();
-                ArrayList<Comment> comments = new ArrayList<>();
-                while(!lv1.isEmpty()) {
-                    ArrayList<Comment> lv2 = new ArrayList<>();
-                    Comment comm = lv1.poll();
-                    comments.add(comm);
-                    PriorityQueue<Comment> l2 = comm.GetReplies(user, myVotes);
-                    while(!l2.isEmpty())
-                        lv2.add(l2.poll());
-                    commentsMap.put(comm.getID(), lv2);
-                }
-                parentMap.put(parent.getID(), comments);
-
-                JsonObject jsonObj = new JsonObject();
-                jsonObj.add("parent", gson.toJsonTree(parent, Comment.class));
-                jsonObj.add("lv1", gson.toJsonTree(parentMap, commentMapType));
-                jsonObj.add("lv2", gson.toJsonTree(commentsMap, commentMapType));
-                jsonObj.add("votes", gson.toJsonTree(myVotes, id_vote_type));
-                res.type("application/json");
-                return gson.toJson(jsonObj);
             } catch (Exception e) {
                 e.printStackTrace(); // server log
                 res.status(500);
@@ -1125,10 +1087,12 @@ public class Server {
                     subs = rs.getInt(1);
                 sql = "SELECT COUNT(*) FROM posts";
                 stmt = Database.PrepareStatement(sql);
+                rs = stmt.executeQuery();
                 if(rs.next())
                     posts = rs.getInt(1);
                 sql = "SELECT COUNT(*) FROM users";
                 stmt = Database.PrepareStatement(sql);
+                rs = stmt.executeQuery();
                 while(rs.next())
                     users = rs.getInt(1);
                 Integer[] arr = {posts, subs, users};
