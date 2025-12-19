@@ -41,6 +41,8 @@ public class Message {
     public boolean GetRead(){return read;}
 
     public void send() throws SQLException {
+        if(this.media == null)
+            this.media = new Media(MediaType.NONE, "");
         String sql = "INSERT INTO messages (sender_id, receiver_id, content, media_url, media_type) VALUES (?, ?, ?, ?, ?)";
         PreparedStatement stmt = Database.PrepareStatement(sql);
         stmt.setInt(1, this.sender.getId());

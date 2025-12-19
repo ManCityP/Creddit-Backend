@@ -206,11 +206,17 @@ public class Server {
         });
 
         // Route: Get a specific post
-        get("/post", (req, res) -> {
-            int id = Integer.parseInt(req.queryParams("id"));
+        post("/post", (req, res) -> {
+            JsonObject jsonBody = gson.fromJson(req.body(), JsonObject.class);
+            User user = gson.fromJson(jsonBody.get("user"), User.class);
+            int id = gson.fromJson(jsonBody.get("id"), int.class);
             Post post = Database.GetPost(id);
+            int vote = (user == null? 0 : user.CheckVote(post));
             res.type("application/json");
-            return gson.toJson(post);
+            JsonObject json = new JsonObject();
+            json.add("post", gson.toJsonTree(post, Post.class));
+            json.addProperty("vote", gson.toJson(vote, int.class));
+            return gson.toJson(json);
         });
 
         // Route: Get all categories
@@ -549,39 +555,64 @@ public class Server {
 
         // Route: Get all user's subcreddits
         post("/user/subcreddits", (req, res) -> {
-            User user = gson.fromJson(req.body(), User.class);
-            ArrayList<Subcreddit> subcreddits = user.GetSubcreddits();
-            res.type("application/json");
-            return gson.toJson(subcreddits);
+            try {
+                User user = gson.fromJson(req.body(), User.class);
+                ArrayList<Subcreddit> subcreddits = user.GetSubcreddits();
+                res.type("application/json");
+                return gson.toJson(subcreddits);
+            }
+            catch (Exception e) {
+                e.printStackTrace(); // server log
+                res.status(500);
+                return gson.toJson(Map.of("status", "error", "message", e.getMessage()));
+            }
         });
 
         // Route: Check the user's vote for a post
         post("/user/checkvote", (req, res) -> {
-            JsonObject json = gson.fromJson(req.body(), JsonObject.class);
-            User user = gson.fromJson(json.get("user"), User.class);
-            Voteable voteable = gson.fromJson(json.get("voteable"), Voteable.class);
-            int vote = user.CheckVote(voteable);
-            res.type("application/json");
-            return gson.toJson(vote);
+            try {
+                JsonObject json = gson.fromJson(req.body(), JsonObject.class);
+                User user = gson.fromJson(json.get("user"), User.class);
+                Voteable voteable = gson.fromJson(json.get("voteable"), Voteable.class);
+                int vote = user.CheckVote(voteable);
+                res.type("application/json");
+                return gson.toJson(vote);
+            } catch (Exception e) {
+                e.printStackTrace(); // server log
+                res.status(500);
+                return gson.toJson(Map.of("status", "error", "message", e.getMessage()));
+            }
         });
 
         // Route: Get user's private message feed
         post("/pm/feed", (req, res) -> {
-            JsonObject json = gson.fromJson(req.body(), JsonObject.class);
-            User user = gson.fromJson(json.get("user"), User.class);
-            User friend = gson.fromJson(json.get("friend"), User.class);
-            int lastMessageID = gson.fromJson(json.get("lastID"), int.class);
-            ArrayList<Message> messages = user.GetPrivateMessageFeed(friend, lastMessageID);
-            res.type("application/json");
-            return gson.toJson(messages);
+            try {
+                JsonObject json = gson.fromJson(req.body(), JsonObject.class);
+                User user = gson.fromJson(json.get("user"), User.class);
+                User friend = gson.fromJson(json.get("friend"), User.class);
+                int lastMessageID = gson.fromJson(json.get("lastID"), int.class);
+                ArrayList<Message> messages = user.GetPrivateMessageFeed(friend, lastMessageID);
+                res.type("application/json");
+                return gson.toJson(messages);
+            } catch (Exception e) {
+                e.printStackTrace(); // server log
+                res.status(500);
+                return gson.toJson(Map.of("status", "error", "message", e.getMessage()));
+            }
         });
 
         // Route: Get user's unread private message
         post("/pm/unread", (req, res) -> {
-            User user = gson.fromJson(req.body(), User.class);
-            ArrayList<Message> messages = user.GetUnreadPrivateMessages();
-            res.type("application/json");
-            return gson.toJson(messages);
+            try {
+                User user = gson.fromJson(req.body(), User.class);
+                ArrayList<Message> messages = user.GetUnreadPrivateMessages();
+                res.type("application/json");
+                return gson.toJson(messages);
+            } catch (Exception e) {
+                e.printStackTrace(); // server log
+                res.status(500);
+                return gson.toJson(Map.of("status", "error", "message", e.getMessage()));
+            }
         });
 
         // Route: Get user's private message feed
@@ -880,8 +911,10 @@ public class Server {
 
         // Route: Get subcreddit members
         post("/subcreddit/members", (req, res) -> {
-            Subcreddit subcreddit = gson.fromJson(req.body(), Subcreddit.class);
-            ArrayList<User> members = subcreddit.GetMembers();
+            JsonObject json = gson.fromJson(req.body(), JsonObject.class);
+            Subcreddit sub = gson.fromJson(json.get("subcreddit"), Subcreddit.class);
+            int lastID = gson.fromJson(json.get("lastID"), int.class);
+            ArrayList<User> members = sub.GetMembers(lastID);
             res.type("application/json");
             return gson.toJson(members, userListType);
         });
@@ -892,6 +925,23 @@ public class Server {
             ArrayList<User> bannedMembers = subcreddit.GetBannedMembers();
             res.type("application/json");
             return gson.toJson(bannedMembers, userListType);
+        });
+
+        // Route: Add subcreddit moderator
+        post("/subcreddit/mod", (req, res) -> {
+            try {
+                JsonObject json = gson.fromJson(req.body(), JsonObject.class);
+                User user = gson.fromJson(json.get("user"), User.class);
+                Subcreddit sub = gson.fromJson(json.get("subcreddit"), Subcreddit.class);
+                sub.AddModerator(user);
+                res.type("application/json");
+                return gson.toJson(Map.of("status", "ok"));
+            }
+            catch (Exception e) {
+                e.printStackTrace(); // server log
+                res.status(500);
+                return gson.toJson(Map.of("status", "error", "message", e.getMessage()));
+            }
         });
 
         // Route: Get subcreddit bans
@@ -922,6 +972,19 @@ public class Server {
 
 
         // BOOKMARK: Reports
+        // Route: Get if a report exists
+        post("/report/exist", (req, res) -> {
+            try {
+                Report report = gson.fromJson(req.body(), Report.class);
+                res.type("application/json");
+                return gson.toJson(report.exists(), boolean.class);
+            } catch (Exception e) {
+                e.printStackTrace(); // server log
+                res.status(500);
+                return gson.toJson(Map.of("status", "error", "message", e.getMessage()));
+            }
+        });
+
         // Route: Submit a report
         post("/report/submit", (req, res) -> {
             try {
