@@ -114,7 +114,7 @@ public class Comment implements Voteable, Reportable {
             while(rs2.next()) {
                 int val = rs2.getInt("value");
                 votes += val;
-                if(user != null && rs.getInt("user_id") == user.getId()) {
+                if(user != null && rs2.getInt("user_id") == user.getId()) {
                     found = true;
                     myVotes.put(commentID, val);
                 }

@@ -22,13 +22,8 @@ public class Post implements Voteable, Reportable {
     private int replyCount;
 
     public Post(int id, User author, Subcreddit subcreddit, String title, String content, ArrayList<Media> media, ArrayList<String> categories, Timestamp timeCreated, Timestamp timeEdited, int votes, int replyCount) {
-        if (id <= 0)
+        if (id < 0)
             return;
-
-        if (title == null || title.isEmpty() || title.length() > 255)
-            return;
-        /*if(content == null || content.isEmpty())
-            return;*/
 
         this.id = id;
         this.author = author;
@@ -89,10 +84,52 @@ public class Post implements Voteable, Reportable {
         return genID;
     }
 
-    // TODO: Do this like a normal human being
     public void update() throws SQLException {
-        this.delete();
-        this.create();
+        String sql = "DELETE FROM post_media WHERE post_id = ?";
+        PreparedStatement stmt = Database.PrepareStatement(sql);
+        stmt.setInt(1, this.id);
+        stmt.executeUpdate();
+
+        sql = "DELETE FROM post_categories WHERE post_id = ?";
+        stmt = Database.PrepareStatement(sql);
+        stmt.setInt(1, this.id);
+        stmt.executeUpdate();
+
+        sql = "UPDATE posts SET author_id = ?, title = ?, content = ? WHERE id = ?";
+        stmt = Database.PrepareStatement(sql);
+        stmt.setInt(1, this.author.getId());
+        stmt.setString(2, this.title);
+        stmt.setString(3, this.content);
+        stmt.setInt(4, this.id);
+        stmt.executeUpdate();
+
+        if(this.categories != null) {
+            for (String category : this.categories) {
+                int categoryID = Database.CategoryExists(category);
+                if (categoryID == 0)
+                    categoryID = Database.InsertCategory(category.toLowerCase());
+                if(categoryID == 0)
+                    throw new SQLException("Could not insert category");
+                sql = "INSERT INTO post_categories (post_id, category_id) VALUES (?, ?)";
+                stmt = Database.PrepareStatement(sql);
+                stmt.setInt(1, this.id);
+                stmt.setInt(2, categoryID);
+                stmt.executeUpdate();
+            }
+        }
+
+        if(this.media != null) {
+            for(Media md : media) {
+                if(md.GetURL() != null && !md.GetURL().isEmpty()) {
+                    sql = "INSERT INTO post_media (post_id, media_url, media_type) VALUES (?, ?, ?)";
+                    stmt = Database.PrepareStatement(sql);
+                    stmt.setInt(1, this.id);
+                    stmt.setString(2, md.GetURL());
+                    stmt.setString(3, md.GetType().toString());
+                    stmt.executeUpdate();
+                }
+            }
+        }
     }
 
     public void delete() throws SQLException {

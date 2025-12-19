@@ -49,6 +49,7 @@ public class Subcreddit {
             throw new SQLException("Could not create subcreddit!");
         this.id = genID;
         this.creator.joinSubcreddit(this);
+        this.AddModerator(creator);
         return genID;
     }
 
@@ -63,18 +64,37 @@ public class Subcreddit {
     }
 
     public void delete() throws SQLException {
-        String sql = "DELETE FROM subcreddits WHERE id = ?";
+        String sql = "DELETE FROM posts WHERE subcreddit_id = ?";
         PreparedStatement stmt = Database.PrepareStatement(sql);
+        stmt.setInt(1, this.id);
+        stmt.executeUpdate();
+
+        sql = "DELETE FROM subcreddits WHERE id = ?";
+        stmt = Database.PrepareStatement(sql);
         stmt.setInt(1, this.id);
         stmt.executeUpdate();
     }
 
-    public ArrayList<User> GetMembers() throws SQLException {
-        ArrayList<User> members = new ArrayList<>();
-        String sql = "SELECT * FROM subcreddit_members WHERE (accepted = 1 AND subcreddit_id = ?) ORDER BY id DESC";
+    public void AddModerator(User user) throws SQLException {
+        String sql = "INSERT INTO subcreddit_moderators (user_id, subcreddit_id) VALUES (?, ?)";
+        PreparedStatement stmt = Database.PrepareStatement(sql);
+        stmt.setInt(1, user.getId());
+        stmt.setInt(2, this.id);
+        stmt.executeUpdate();
+    }
 
+    public ArrayList<User> GetMembers(int lastID) throws SQLException {
+        ArrayList<User> members = new ArrayList<>();
+
+        String sql;
+        if(lastID > 0)
+        sql = "SELECT * FROM subcreddit_members WHERE (accepted = 1 AND subcreddit_id = ?) AND user_id < ? ORDER BY id DESC";
+        else
+            sql = "SELECT * FROM subcreddit_members WHERE (accepted = 1 AND subcreddit_id = ?) ORDER BY id DESC";
         PreparedStatement stmt = Database.PrepareStatement(sql);
         stmt.setInt(1, this.id);
+        if(lastID > 0)
+            stmt.setInt(2, lastID);
         ResultSet rs = stmt.executeQuery();
         while (rs.next()) {
             User member = Database.GetUser(rs.getInt("user_id"));

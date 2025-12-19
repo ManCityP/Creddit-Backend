@@ -48,6 +48,33 @@ public class Report {
         this.timeReported = timeReported;
     }
 
+    public boolean exists() throws SQLException {
+        if(this.target instanceof User) {
+            String sql = "SELECT * FROM reports_users WHERE reporter_id = ? AND reported_user_id = ?";
+            PreparedStatement stmt = Database.PrepareStatement(sql);
+            stmt.setInt(1, this.reporter.getId());
+            stmt.setInt(2, ((User)target).getId());
+            ResultSet rs = stmt.executeQuery();
+            return rs.next();
+        }
+        if(this.target instanceof Post) {
+            String sql = "SELECT * FROM reports_posts WHERE reporter_id = ? AND reported_post_id = ?";
+            PreparedStatement stmt = Database.PrepareStatement(sql);
+            stmt.setInt(1, this.reporter.getId());
+            stmt.setInt(2, ((Post)target).GetID());
+            ResultSet rs = stmt.executeQuery();
+            return rs.next();
+        }
+        if(this.target instanceof Comment) {
+            String sql = "SELECT * FROM reports_comments WHERE reporter_id = ? AND reported_comment_id = ?";
+            PreparedStatement stmt = Database.PrepareStatement(sql);
+            stmt.setInt(1, this.reporter.getId());
+            stmt.setInt(2, ((Comment)target).getID());
+            ResultSet rs = stmt.executeQuery();
+            return rs.next();
+        }
+        return false;
+    }
 
     public void SubmitReport() throws SQLException {
         if(target instanceof User) {
@@ -262,5 +289,4 @@ public class Report {
         }
         return false;
     }
-
 }

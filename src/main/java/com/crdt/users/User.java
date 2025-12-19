@@ -130,6 +130,8 @@ public class User implements Reportable {
     public void update() throws SQLException {
         if(!this.active)
             return;
+        if(pfp == null)
+            pfp = new Media(MediaType.IMAGE, "");
         String sql = "UPDATE users SET username = ?, password_hash = ?, bio = ?, pfp = ? WHERE id = ?";
         PreparedStatement stmt = Database.PrepareStatement(sql);
         stmt.setString(1, this.username);
@@ -339,26 +341,36 @@ public class User implements Reportable {
         //TODO wainting for Meho (Meho here, this can wait for next update, also "wainting" ;) )
     }
 
-    public void joinSubcreddit(Subcreddit subcreddit) throws SQLException {
+    public boolean joinSubcreddit(Subcreddit subcreddit) throws SQLException {
         //TODO: Check if you are banned from the subcreddit
         if(!this.active || subcreddit == null || subcreddit.GetSubId() <= 0)
-            return;
-        String sql = "INSERT INTO subcreddit_members (user_id, subcreddit_id, accepted) VALUES (?, ?, ?)";
+            return false;
+        String sql = "SELECT * FROM bans WHERE subcreddit_id = ? AND user_id = ?";
         PreparedStatement stmt = Database.PrepareStatement(sql);
+        stmt.setInt(1, subcreddit.GetSubId());
+        stmt.setInt(2, this.id);
+
+        sql = "INSERT INTO subcreddit_members (user_id, subcreddit_id, accepted) VALUES (?, ?, ?)";
+        stmt = Database.PrepareStatement(sql);
         stmt.setInt(1, this.id);
         stmt.setInt(2, subcreddit.GetSubId());
-        stmt.setInt(3, subcreddit.GetPrivate()? 0 : 1);
+        if(this.equals(subcreddit.GetCreator()))
+            stmt.setInt(3, 1);
+        else
+            stmt.setInt(3, subcreddit.GetPrivate()? 0 : 1);
         stmt.executeUpdate();
+        return true;
     }
 
-    public void leaveSubcreddit(Subcreddit subcreddit) throws SQLException {
+    public boolean leaveSubcreddit(Subcreddit subcreddit) throws SQLException {
         if(!this.active || subcreddit == null || subcreddit.GetSubId() <= 0 || subcreddit.GetCreator().equals(this))
-            return;
+            return false;
         String sql = "DELETE FROM subcreddit_members WHERE (user_id = ? AND subcreddit_id = ?)";
         PreparedStatement stmt = Database.PrepareStatement(sql);
         stmt.setInt(1, this.id);
         stmt.setInt(2, subcreddit.GetSubId());
         stmt.executeUpdate();
+        return true;
     }
 
     public boolean isMember(Subcreddit sub) throws SQLException {
