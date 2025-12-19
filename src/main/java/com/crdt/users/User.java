@@ -509,9 +509,9 @@ public class User implements Reportable {
         int id2 = friend.id;
         String sql;
         if(lastMessageID > 0)
-            sql = "SELECT * FROM messages ORDER BY id DESC WHERE (sender_id = ? AND receiver_id = ?) OR (sender_id = ? AND receiver_id = ?) AND id < ? LIMIT 20";
+            sql = "SELECT * FROM messages WHERE (sender_id = ? AND receiver_id = ?) OR (sender_id = ? AND receiver_id = ?) AND id < ? ORDER BY id DESC LIMIT 20";
         else
-            sql = "SELECT * FROM messages ORDER BY id DESC WHERE (sender_id = ? AND receiver_id = ?) OR (sender_id = ? AND receiver_id = ?) LIMIT 20";
+            sql = "SELECT * FROM messages WHERE (sender_id = ? AND receiver_id = ?) OR (sender_id = ? AND receiver_id = ?) ORDER BY id DESC LIMIT 20";
         PreparedStatement stmt = Database.PrepareStatement(sql);
         stmt.setInt(1, id1); stmt.setInt(2, id2);
         stmt.setInt(3, id2); stmt.setInt(4, id1);
@@ -522,7 +522,7 @@ public class User implements Reportable {
             int sender_id = rs.getInt("sender_id");
             messages.add(new Message(rs.getInt("id"), sender_id == id1? this : friend, sender_id == id1? friend : this,
                     rs.getString("content"), new Media(MediaType.from(rs.getString("media_type")), rs.getString("media_url")),
-                    rs.getTimestamp("create_time"), rs.getTimestamp("edit_time"), rs.getInt("read") != 0
+                    rs.getTimestamp("create_time"), rs.getTimestamp("edit_time"), rs.getInt("is_read") != 0
             ));
         }
         return messages;
@@ -543,7 +543,7 @@ public class User implements Reportable {
             int sender_id = rs.getInt("sender_id");
             messages.add(new Message(rs.getInt("id"), sender_id == id1? this : friend, sender_id == id1? friend : this,
                     rs.getString("content"), new Media(MediaType.from(rs.getString("media_type")), rs.getString("media_url")),
-                    rs.getTimestamp("create_time"), rs.getTimestamp("edit_time"), rs.getInt("read") != 0
+                    rs.getTimestamp("create_time"), rs.getTimestamp("edit_time"), rs.getInt("is_read") != 0
             ));
         }
         return messages;
@@ -551,14 +551,14 @@ public class User implements Reportable {
 
     public ArrayList<Message> GetUnreadPrivateMessages() throws SQLException {
         ArrayList<Message> messages = new ArrayList<>();
-        String sql = "SELECT * FROM messages ORDER BY id DESC WHERE receiver_id = ? AND read = 0";
+        String sql = "SELECT * FROM messages WHERE receiver_id = ? AND is_read = 0 ORDER BY id DESC";
         PreparedStatement stmt = Database.PrepareStatement(sql);
-        stmt.setInt(3, this.id);
+        stmt.setInt(1, this.id);
         ResultSet rs = stmt.executeQuery();
         while(rs.next()) {
             messages.add(new Message(rs.getInt("id"), Database.GetUser(rs.getInt("sender_id")), this,
                     rs.getString("content"), new Media(MediaType.from(rs.getString("media_type")), rs.getString("media_url")),
-                    rs.getTimestamp("create_time"), rs.getTimestamp("edit_time"), rs.getInt("read") != 0
+                    rs.getTimestamp("create_time"), rs.getTimestamp("edit_time"), rs.getInt("is_read") != 0
             ));
         }
         return messages;
@@ -567,7 +567,7 @@ public class User implements Reportable {
     public void ReadMessages(User friend) throws SQLException {
         int id1 = this.id;
         int id2 = friend.id;
-        String sql = "UPDATE messages SET read = 1 WHERE (sender_id = ? AND receiver_id = ?)";
+        String sql = "UPDATE messages SET is_read = 1 WHERE (sender_id = ? AND receiver_id = ?)";
         PreparedStatement stmt = Database.PrepareStatement(sql);
         stmt.setInt(1, id2); stmt.setInt(2, id1);
         stmt.executeUpdate();

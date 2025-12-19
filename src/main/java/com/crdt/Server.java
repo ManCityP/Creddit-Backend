@@ -211,7 +211,7 @@ public class Server {
             User user = gson.fromJson(jsonBody.get("user"), User.class);
             int id = gson.fromJson(jsonBody.get("id"), int.class);
             Post post = Database.GetPost(id);
-            int vote = user == null? 0 : user.CheckVote(post);
+            int vote = (user == null? 0 : user.CheckVote(post));
             res.type("application/json");
             JsonObject json = new JsonObject();
             json.add("post", gson.toJsonTree(post, Post.class));
@@ -555,39 +555,64 @@ public class Server {
 
         // Route: Get all user's subcreddits
         post("/user/subcreddits", (req, res) -> {
-            User user = gson.fromJson(req.body(), User.class);
-            ArrayList<Subcreddit> subcreddits = user.GetSubcreddits();
-            res.type("application/json");
-            return gson.toJson(subcreddits);
+            try {
+                User user = gson.fromJson(req.body(), User.class);
+                ArrayList<Subcreddit> subcreddits = user.GetSubcreddits();
+                res.type("application/json");
+                return gson.toJson(subcreddits);
+            }
+            catch (Exception e) {
+                e.printStackTrace(); // server log
+                res.status(500);
+                return gson.toJson(Map.of("status", "error", "message", e.getMessage()));
+            }
         });
 
         // Route: Check the user's vote for a post
         post("/user/checkvote", (req, res) -> {
-            JsonObject json = gson.fromJson(req.body(), JsonObject.class);
-            User user = gson.fromJson(json.get("user"), User.class);
-            Voteable voteable = gson.fromJson(json.get("voteable"), Voteable.class);
-            int vote = user.CheckVote(voteable);
-            res.type("application/json");
-            return gson.toJson(vote);
+            try {
+                JsonObject json = gson.fromJson(req.body(), JsonObject.class);
+                User user = gson.fromJson(json.get("user"), User.class);
+                Voteable voteable = gson.fromJson(json.get("voteable"), Voteable.class);
+                int vote = user.CheckVote(voteable);
+                res.type("application/json");
+                return gson.toJson(vote);
+            } catch (Exception e) {
+                e.printStackTrace(); // server log
+                res.status(500);
+                return gson.toJson(Map.of("status", "error", "message", e.getMessage()));
+            }
         });
 
         // Route: Get user's private message feed
         post("/pm/feed", (req, res) -> {
-            JsonObject json = gson.fromJson(req.body(), JsonObject.class);
-            User user = gson.fromJson(json.get("user"), User.class);
-            User friend = gson.fromJson(json.get("friend"), User.class);
-            int lastMessageID = gson.fromJson(json.get("lastID"), int.class);
-            ArrayList<Message> messages = user.GetPrivateMessageFeed(friend, lastMessageID);
-            res.type("application/json");
-            return gson.toJson(messages);
+            try {
+                JsonObject json = gson.fromJson(req.body(), JsonObject.class);
+                User user = gson.fromJson(json.get("user"), User.class);
+                User friend = gson.fromJson(json.get("friend"), User.class);
+                int lastMessageID = gson.fromJson(json.get("lastID"), int.class);
+                ArrayList<Message> messages = user.GetPrivateMessageFeed(friend, lastMessageID);
+                res.type("application/json");
+                return gson.toJson(messages);
+            } catch (Exception e) {
+                e.printStackTrace(); // server log
+                res.status(500);
+                return gson.toJson(Map.of("status", "error", "message", e.getMessage()));
+            }
         });
 
         // Route: Get user's unread private message
         post("/pm/unread", (req, res) -> {
-            User user = gson.fromJson(req.body(), User.class);
-            ArrayList<Message> messages = user.GetUnreadPrivateMessages();
-            res.type("application/json");
-            return gson.toJson(messages);
+            try {
+                User user = gson.fromJson(req.body(), User.class);
+                ArrayList<Message> messages = user.GetUnreadPrivateMessages();
+                res.type("application/json");
+                return gson.toJson(messages);
+            } catch (Exception e) {
+                e.printStackTrace(); // server log
+                res.status(500);
+                return gson.toJson(Map.of("status", "error", "message", e.getMessage()));
+            }
         });
 
         // Route: Get user's private message feed
