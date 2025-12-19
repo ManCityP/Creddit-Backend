@@ -801,7 +801,7 @@ public class Server {
             }
 
             JsonObject jsonObj = new JsonObject();
-            jsonObj.add("posts", gson.toJsonTree(subs));
+            jsonObj.add("subs", gson.toJsonTree(subs));
             res.type("application/json");
             return gson.toJson(jsonObj);
         });
