@@ -17,6 +17,8 @@ import javax.servlet.MultipartConfigElement;
 import java.io.*;
 import java.lang.reflect.Type;
 import java.nio.file.*;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.*;
 import java.util.concurrent.ExecutorService;
@@ -797,6 +799,44 @@ public class Server {
             }
         });
 
+        //Route: Get Post's comment feed
+        post("/comment/feed", (req, res) -> {
+            try {
+                JsonObject json = gson.fromJson(req.body(), JsonObject.class);
+                User user = gson.fromJson(json.get("user"), User.class);
+                int commentid = gson.fromJson(json.get("commentid"), int.class);
+                Map<Integer, Integer> myVotes = new HashMap<>();
+                Comment parent = Database.GetComment(commentid);
+                myVotes.put(parent.getID(), user == null? 0 : user.CheckVote(parent));
+                PriorityQueue<Comment> lv1 = parent.GetReplies(user, myVotes);
+                Map<Integer, ArrayList<Comment>> parentMap = new HashMap<>();
+                Map<Integer, ArrayList<Comment>> commentsMap = new HashMap<>();
+                ArrayList<Comment> comments = new ArrayList<>();
+                while(!lv1.isEmpty()) {
+                    ArrayList<Comment> lv2 = new ArrayList<>();
+                    Comment comm = lv1.poll();
+                    comments.add(comm);
+                    PriorityQueue<Comment> l2 = comm.GetReplies(user, myVotes);
+                    while(!l2.isEmpty())
+                        lv2.add(l2.poll());
+                    commentsMap.put(comm.getID(), lv2);
+                }
+                parentMap.put(parent.getID(), comments);
+
+                JsonObject jsonObj = new JsonObject();
+                jsonObj.add("parent", gson.toJsonTree(parent, Comment.class));
+                jsonObj.add("lv1", gson.toJsonTree(parentMap, commentMapType));
+                jsonObj.add("lv2", gson.toJsonTree(commentsMap, commentMapType));
+                jsonObj.add("votes", gson.toJsonTree(myVotes, id_vote_type));
+                res.type("application/json");
+                return gson.toJson(jsonObj);
+            } catch (Exception e) {
+                e.printStackTrace(); // server log
+                res.status(500);
+                return gson.toJson(Map.of("status", "error", "message", e.getMessage()));
+            }
+        });
+
         // Route: Get a specific comment
         get("/comment", (req, res) -> {
             int id = Integer.parseInt(req.queryParams("id"));
@@ -1071,6 +1111,35 @@ public class Server {
                 return gson.toJson(Map.of("status", "error", "message", e.getMessage()));
             }
         });
+        // Route: Analytics
+        post("/analytics", (req, res) -> {
+            try {
+                User user = gson.fromJson(req.body(), User.class);
+                if(user == null)
+                    throw new Exception("Access Restriction!");
+                int subs = 0, posts = 0, users = 0;
+                String sql = "SELECT COUNT(*) FROM subcreddits";
+                PreparedStatement stmt = Database.PrepareStatement(sql);
+                ResultSet rs = stmt.executeQuery();
+                if(rs.next())
+                    subs = rs.getInt(1);
+                sql = "SELECT COUNT(*) FROM posts";
+                stmt = Database.PrepareStatement(sql);
+                if(rs.next())
+                    posts = rs.getInt(1);
+                sql = "SELECT COUNT(*) FROM users";
+                stmt = Database.PrepareStatement(sql);
+                while(rs.next())
+                    users = rs.getInt(1);
+                Integer[] arr = {posts, subs, users};
+                res.type("application/json");
+                return gson.toJson(arr, Integer[].class);
+            } catch (Exception e) {
+                e.printStackTrace(); // server log
+                res.status(500);
+                return gson.toJson(Map.of("status", "error", "message", e.getMessage()));
+            }
+        });
 
         // Route: Get user report feed
         post("/report/feed/users", (req, res) -> {
@@ -1078,6 +1147,16 @@ public class Server {
             Admin admin = gson.fromJson(json.get("admin"), Admin.class);
             int lastID = gson.fromJson(json.get("lastID"), int.class);
             ArrayList<Report> reports = Report.GetUserReportFeed(admin, lastID);
+            res.type("application/json");
+            return gson.toJson(reports);
+        });
+
+        // Route: Get user report feed
+        post("/reports/feed", (req, res) -> {
+            JsonObject json = gson.fromJson(req.body(), JsonObject.class);
+            User user = gson.fromJson(json.get("user"), Admin.class);
+            int lastID = gson.fromJson(json.get("lastID"), int.class);
+            ArrayList<Report> reports = user.GetAllReports(lastID);
             res.type("application/json");
             return gson.toJson(reports);
         });
