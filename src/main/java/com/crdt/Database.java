@@ -168,8 +168,8 @@ public abstract class Database {
             stmt3 = Database.PrepareStatement(sql3);
             stmt3.setInt(1, commentID);
             rs3 = stmt3.executeQuery();
-            while(rs3.next()) {
-                votes += rs3.getInt("value");
+            if(rs3.next()) {
+                votes += rs3.getInt(1);
             }
 
             comments.add(new Comment(commentID, post, author, content, media, -1, votes, replies, createTime, editTime, false));
