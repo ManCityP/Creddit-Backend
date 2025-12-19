@@ -636,6 +636,12 @@ public class User implements Reportable {
         return 0;
     }
 
+    public ArrayList<Report> GetAllReports(int lastID) {
+        ArrayList<Report> reports = new ArrayList<>();
+        String sql = "SELECT * FROM reports";
+        return reports;
+    }
+
     public void setUsername(String username) {
         if (username == null || username.isEmpty() || username.length() > 32)
             return;
