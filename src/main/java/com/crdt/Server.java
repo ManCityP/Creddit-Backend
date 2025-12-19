@@ -1069,26 +1069,26 @@ public class Server {
         // Route: Analytics
         post("/analytics", (req, res) -> {
             try {
-                Admin admin = gson.fromJson(req.body(), Admin.class);
-                if(admin == null)
+                User user = gson.fromJson(req.body(), User.class);
+                if(user == null)
                     throw new Exception("Access Restriction!");
                 int subs = 0, posts = 0, users = 0;
-                String sql = "SELECT * FROM subcreddits";
+                String sql = "SELECT COUNT(*) FROM subcreddits";
                 PreparedStatement stmt = Database.PrepareStatement(sql);
                 ResultSet rs = stmt.executeQuery();
-                while(rs.next())
-                    subs++;
-                sql = "SELECT * FROM posts";
+                if(rs.next())
+                    subs = rs.getInt(1);
+                sql = "SELECT COUNT(*) FROM posts";
+                stmt = Database.PrepareStatement(sql);
+                if(rs.next())
+                    posts = rs.getInt(1);
+                sql = "SELECT COUNT(*) FROM users";
                 stmt = Database.PrepareStatement(sql);
                 while(rs.next())
-                    posts++;
-                sql = "SELECT * FROM users";
-                stmt = Database.PrepareStatement(sql);
-                while(rs.next())
-                    users++;
-                int[] arr = {users, subs, posts};
+                    users = rs.getInt(1);
+                Integer[] arr = {posts, subs, users};
                 res.type("application/json");
-                return gson.toJson(arr, int.class);
+                return gson.toJson(arr, Integer[].class);
             } catch (Exception e) {
                 e.printStackTrace(); // server log
                 res.status(500);
