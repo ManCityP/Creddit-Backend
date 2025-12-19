@@ -270,6 +270,26 @@ public class User implements Reportable {
         return result;
     }
 
+    public static ArrayList<Comment> GetCommentFeed(User user, String prompt, int lastID) throws SQLException {
+        ArrayList<Comment> result = new ArrayList<>();
+        ArrayList<Comment> comments = Database.GetAllComments(prompt);
+        if(user == null)
+            user = new User(0, "Default", "default@default.com", "", Gender.MALE, "", new Media(MediaType.IMAGE, ""), null, null, true);
+        int i = 0;
+        if(lastID > 0) {
+            for(Comment comment : comments) {
+                i++;
+                if (comment.getID() == lastID)
+                    break;
+            }
+        }
+        int limit = lastID > 0? 6 : 10;
+        for(; i < limit && i < comments.size(); i++) {
+            result.add(comments.get(i));
+        }
+        return result;
+    }
+
     public ArrayList<Post> GetAllPostsFilterVote(String prompt, int voteValue, int lastID) throws SQLException {
         ArrayList<Post> posts = new ArrayList<>();
         if(prompt == null)

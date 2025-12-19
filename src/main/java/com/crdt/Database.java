@@ -137,6 +137,47 @@ public abstract class Database {
         return subs;
     }
 
+    public static ArrayList<Comment> GetAllComments(String prompt) throws SQLException {
+        ArrayList<Comment> comments = new ArrayList<>();
+        if(prompt == null)
+            prompt = "";
+        String sql = "SELECT * FROM comments WHERE LOWER(comments.content) LIKE ? ORDER BY id DESC";
+        PreparedStatement stmt = PrepareStatement(sql);
+        stmt.setString(1, "%" + prompt.toLowerCase() + "%");
+        ResultSet rs = stmt.executeQuery();
+        while (rs.next()) {
+            int commentID = rs.getInt("id");
+            Post post = GetPost(rs.getInt("post_id"));
+            User author = GetUser(rs.getInt("author_id"));
+            String content = rs.getString("content");
+            Timestamp createTime = rs.getTimestamp("create_time");
+            Timestamp editTime = rs.getTimestamp("edit_time");
+            Media media = new Media(MediaType.IMAGE, rs.getString("media_url"));
+
+            int votes = 0;
+            String sql3 = "SELECT * FROM votes_comments WHERE (comment_id = ?)";
+            PreparedStatement stmt3 = PrepareStatement(sql3);
+            stmt3.setInt(1, commentID);
+            ResultSet rs3 = stmt3.executeQuery();
+            while(rs3.next()) {
+                votes += rs3.getInt("value");
+            }
+
+            int replies = 0;
+            sql3 = "SELECT COUNT(*) AS count FROM comments WHERE parent_id = ?";
+            stmt3 = Database.PrepareStatement(sql3);
+            stmt3.setInt(1, commentID);
+            rs3 = stmt3.executeQuery();
+            while(rs3.next()) {
+                votes += rs3.getInt("value");
+            }
+
+            comments.add(new Comment(commentID, post, author, content, media, -1, votes, replies, createTime, editTime, false));
+        }
+        return comments;
+
+    }
+
     public static ArrayList<Post> GetAllPostsFilterSub(Subcreddit sub, String prompt, int lastID) throws SQLException {
         ArrayList<Post> posts = new ArrayList<>();
         if(sub == null)
