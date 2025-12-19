@@ -115,6 +115,28 @@ public abstract class Database {
         return posts;
     }
 
+    public static ArrayList<Subcreddit> GetAllSubcreddits(String prompt) throws SQLException {
+        ArrayList<Subcreddit> subs = new ArrayList<>();
+        if(prompt == null)
+            prompt = "";
+        String sql = "SELECT * FROM subcreddits WHERE LOWER(subcreddits.name) LIKE ? OR LOWER(subcreddits.description) LIKE ? ORDER BY id DESC";
+        PreparedStatement stmt = PrepareStatement(sql);
+        stmt.setString(1, "%" + prompt.toLowerCase() + "%");
+        stmt.setString(2, "%" + prompt.toLowerCase() + "%");
+        ResultSet rs = stmt.executeQuery();
+        while (rs.next()) {
+            int subid = rs.getInt("id");
+            String name = rs.getString("name");
+            String description = rs.getString("description");
+            User creator = GetUser(rs.getInt("creator_id"));
+            Media logo = new Media(MediaType.IMAGE, rs.getString("logo"));
+
+            Subcreddit subcreddit = new Subcreddit(subid, name, description, rs.getTimestamp("create_time"), creator, logo, false);
+            subs.add(subcreddit);
+        }
+        return subs;
+    }
+
     public static ArrayList<Post> GetAllPostsFilterSub(Subcreddit sub, String prompt, int lastID) throws SQLException {
         ArrayList<Post> posts = new ArrayList<>();
         if(sub == null)

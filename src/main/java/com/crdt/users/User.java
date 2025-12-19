@@ -248,6 +248,26 @@ public class User implements Reportable {
         return result;
     }
 
+    public static ArrayList<Subcreddit> GetSubFeed(User user, String prompt, int lastID) throws SQLException {
+        ArrayList<Subcreddit> result = new ArrayList<>();
+        ArrayList<Subcreddit> subcreddits = Database.GetAllSubcreddits(prompt);
+        if(user == null)
+            user = new User(0, "Default", "default@default.com", "", Gender.MALE, "", new Media(MediaType.IMAGE, ""), null, null, true);
+        int i = 0;
+        if(lastID > 0) {
+            for(Subcreddit sub : subcreddits) {
+                i++;
+                if (sub.GetSubId() == lastID)
+                    break;
+            }
+        }
+        int limit = lastID > 0? 6 : 10;
+        for(; i < limit && i < subcreddits.size(); i++) {
+            result.add(subcreddits.get(i));
+        }
+        return result;
+    }
+
     public ArrayList<Post> GetAllPostsFilterVote(String prompt, int voteValue, int lastID) throws SQLException {
         ArrayList<Post> posts = new ArrayList<>();
         if(prompt == null)

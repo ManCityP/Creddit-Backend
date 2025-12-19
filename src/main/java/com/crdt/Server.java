@@ -755,6 +755,26 @@ public class Server {
             }
         });
 
+        //filter user's subcreddit feed
+        post("/subcreddit/feed", (req, res) -> {
+            JsonObject json = gson.fromJson(req.body(), JsonObject.class);
+            User user = gson.fromJson(json.get("user"), User.class);
+            String prompt = gson.fromJson(json.get("prompt"), String.class);
+            int lastPostID = gson.fromJson(json.get("lastID"), int.class);
+            ArrayList<Subcreddit> subs = new ArrayList<>();
+            try {
+                subs = User.GetSubFeed(user, prompt, lastPostID);
+            }
+            catch (Exception e) {
+                e.printStackTrace();
+            }
+
+            JsonObject jsonObj = new JsonObject();
+            jsonObj.add("posts", gson.toJsonTree(subs));
+            res.type("application/json");
+            return gson.toJson(jsonObj);
+        });
+
         // Route: Edit Subcreddit
         post("/subcreddit/edit", (req, res) -> {
             try {
