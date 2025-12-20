@@ -718,6 +718,28 @@ public class Server {
             }
         });
 
+        //Route: Get Post's comment feed
+        post("/post/comment/feed", (req, res) -> {
+            try {
+                JsonObject json = gson.fromJson(req.body(), JsonObject.class);
+                User user = gson.fromJson(json.get("user"), User.class);
+                Post post = gson.fromJson(json.get("post"), Post.class);
+                int lastID = gson.fromJson(json.get("lastID"), int.class);
+                CommentFeed commentFeed = post.GetCommentFeed(user, 0, lastID);
+                JsonObject jsonObj = new JsonObject();
+                jsonObj.add("parents", gson.toJsonTree(commentFeed.parents()));
+                jsonObj.add("lv2", gson.toJsonTree(commentFeed.lv2(), commentMapType));
+                jsonObj.add("lv3", gson.toJsonTree(commentFeed.lv3(), commentMapType));
+                jsonObj.add("votes", gson.toJsonTree(commentFeed.votes(), id_vote_type));
+                res.type("application/json");
+                return gson.toJson(jsonObj);
+            } catch (Exception e) {
+                e.printStackTrace(); // server log
+                res.status(500);
+                return gson.toJson(Map.of("status", "error", "message", e.getMessage()));
+            }
+        });
+
         //filter user's comment feed
         post("/comments/feed", (req, res) -> {
             JsonObject json = gson.fromJson(req.body(), JsonObject.class);
@@ -993,11 +1015,18 @@ public class Server {
 
         // Route: Get subcreddit bans
         post("/subcreddit/verifymod", (req, res) -> {
-            JsonObject json = gson.fromJson(req.body(), JsonObject.class);
-            User user = gson.fromJson(json.get("user"), User.class);
-            Subcreddit sub = gson.fromJson(json.get("subcreddit"), Subcreddit.class);
-            res.type("application/json");
-            return gson.toJson(sub.VerifyModeration(user), boolean.class);
+            try {
+                JsonObject json = gson.fromJson(req.body(), JsonObject.class);
+                User user = gson.fromJson(json.get("user"), User.class);
+                Subcreddit sub = gson.fromJson(json.get("subcreddit"), Subcreddit.class);
+                res.type("application/json");
+                return gson.toJson(sub.VerifyModeration(user), boolean.class);
+            }
+            catch (Exception e) {
+                e.printStackTrace();
+                res.status(500);
+                return gson.toJson(Map.of("status", "error", "message", e.getMessage()));
+            }
         });
 
         // Route: Get a specific subcreddit

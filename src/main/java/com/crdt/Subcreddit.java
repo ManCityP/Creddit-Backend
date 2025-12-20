@@ -145,6 +145,8 @@ public class Subcreddit {
     }
 
     public boolean VerifyModeration(User user) throws SQLException {
+        if(user == null)
+            return false;
         if(this.GetCreator().equals(user))
             return true;
         String sql = "SELECT * FROM subcreddit_moderators WHERE (subcreddit_id = ? AND user_id = ?)";
