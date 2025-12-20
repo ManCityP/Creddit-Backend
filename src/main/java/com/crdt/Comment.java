@@ -60,10 +60,11 @@ public class Comment implements Voteable, Reportable {
     }
 
     public void delete() throws SQLException {
-        String sql = "UPDATE comments SET deleted = ? WHERE id = ?";
+        String sql = "UPDATE comments SET deleted = 1, content = ?, media_url = ?  WHERE id = ?";
         PreparedStatement stmt = Database.PrepareStatement(sql);
-        stmt.setInt(1, 1);
-        stmt.setInt(2, this.id);
+        stmt.setString(1, "This comment has been deleted");
+        stmt.setString(2, "");
+        stmt.setInt(3, this.id);
         stmt.executeUpdate();
     }
 
